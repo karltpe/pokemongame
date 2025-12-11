@@ -222,7 +222,7 @@
 </head>
 <body>
 
-<div id="loginOverlay">
+<div id="loginOverlay" >
     <div class="login-card">
         <div class="login-title">🌟 寶可夢單字大冒險 🌟</div>
         <button id="btnGoogleLogin" class="btn-google-login">
@@ -325,11 +325,13 @@
 </div>
 
 <script type="module">
+    // 引入需要的模組：Firebase App, Auth, Firestore
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; // 👈 新增 Firestore 模組
 
     // ***************************************************************
-    // ⚠️ 請務必填入您的 CONFIG (否則按鈕不會有反應)
+    // ⚠️ 請務必在此填入您的 FIREBASE CONFIG
     // ***************************************************************
     const firebaseConfig = {
 		apiKey: "AIzaSyDob5OyYtOjTXCK16iu741sn6KX-rNWa-Q",
@@ -341,16 +343,18 @@
 		measurementId: "G-NJ756ZPF8M"
     };
 
-    let auth;
+    // 初始化 Firebase
+    let auth, db; // 宣告 db 變數
     try {
         const app = initializeApp(firebaseConfig);
         auth = getAuth(app);
-        console.log("Firebase 載入成功");
+        db = getFirestore(app); // 👈 初始化 Firestore
+        console.log("Firebase 連線成功，Firestore 啟用");
     } catch (e) {
-        console.warn("Firebase 未設定或初始化失敗。");
-        // 為了讓您測試介面，如果沒設定，我們假裝有登入按鈕但會跳錯
+        console.error("Firebase 初始化失敗:", e);
     }
 
+    // DOM 元素
     const overlay = document.getElementById('loginOverlay');
     const gameWrapper = document.getElementById('gameWrapper');
     const btnGoogleLogin = document.getElementById('btnGoogleLogin');
@@ -358,42 +362,91 @@
     const userAvatar = document.getElementById('userAvatar');
     const userName = document.getElementById('userName');
 
-    if (auth) {
-        // 監聽登入狀態
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // 已登入 -> 隱藏遮罩，顯示遊戲
-                overlay.style.display = 'none';
-                gameWrapper.style.display = 'flex';
-                userName.textContent = user.displayName;
-                userAvatar.src = user.photoURL;
-                console.log("已登入:", user.displayName);
-            } else {
-                // 未登入 -> 顯示遮罩，隱藏遊戲
-                overlay.style.display = 'flex';
-                gameWrapper.style.display = 'none';
-            }
-        });
-
-        // 點擊登入
+    // --- 登入按鈕事件 ---
+    if (auth && db) {
         btnGoogleLogin.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
             signInWithPopup(auth, provider).catch((error) => {
+                console.error("登入錯誤:", error);
                 alert("登入失敗: " + error.message);
             });
         });
 
-        // 點擊登出
+        // --- 登出按鈕事件 ---
         btnLogout.addEventListener('click', () => {
             signOut(auth).then(() => {
-                location.reload();
+                location.reload(); 
             });
         });
-    } else {
-        // 沒有 Auth (例如 Config 沒填)，直接讓按鈕失效並提示
-        btnGoogleLogin.addEventListener('click', () => {
-            alert("請先在程式碼中填入 Firebase Config！");
+
+        // --- 核心：監聽登入狀態改變 ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 1. 使用者已登入 Google，現在檢查資料庫審核狀態
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (!userSnap.exists()) {
+                        // A. 新使用者：建立資料 (預設未審核)
+                        await setDoc(userRef, {
+                            name: user.displayName,
+                            email: user.email,
+                            photo: user.photoURL,
+                            isApproved: false, // 👈 核心：預設不通過
+                            role: "user",
+                            pokeBalls: 0,      // 初始遊戲數據
+                            createdAt: new Date().toISOString()
+                        });
+                        
+                        alert("註冊成功！您的帳號需要管理員審核才能開始遊戲。");
+                        await signOut(auth); // 強制登出，不讓他進遊戲
+                        return;
+
+                    } else {
+                        // B. 舊使用者：檢查是否審核通過
+                        const userData = userSnap.data();
+                        
+                        if (userData.isApproved === true) {
+                            // 審核通過 -> 隱藏遮罩，顯示遊戲
+                            overlay.style.display = 'none';
+                            gameWrapper.style.display = 'flex';
+                            userName.textContent = userData.name;
+                            userAvatar.src = userData.photo;
+                            userAvatar.style.display = 'block';
+                            
+                            // 這裡可以載入您的遊戲存檔
+                            if (typeof pokeBalls !== 'undefined') {
+                                window.pokeBalls = userData.pokeBalls || 0;
+                                document.getElementById('ballCount').textContent = window.pokeBalls;
+                            }
+                            console.log("審核通過，進入遊戲");
+
+                        } else {
+                            // 審核未通過 -> 踢出
+                            alert("登入失敗：您的帳號尚未通過管理員審核。請耐心等候。");
+                            await signOut(auth);
+                        }
+                    }
+
+                } catch (err) {
+                    console.error("資料庫讀取/寫入失敗:", err);
+                    alert("系統錯誤：無法處理使用者資料。");
+                }
+            } else {
+                // 未登入狀態
+                overlay.style.display = 'flex';
+                gameWrapper.style.display = 'none';
+                userAvatar.style.display = 'none';
+            }
         });
+    } else {
+        // 如果初始化失敗，至少讓 UI 顯示錯誤
+        if (btnGoogleLogin) {
+            btnGoogleLogin.addEventListener('click', () => {
+                alert("Firebase 初始化失敗，請檢查 Config 或網路連線。");
+            });
+        }
     }
 </script>
 
