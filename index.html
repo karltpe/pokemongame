@@ -499,7 +499,8 @@
         const app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
-    } catch(e) { console.error(e); }
+        console.log("Firebase 載入成功");
+    } catch (e) { console.error("Firebase 初始化錯誤:", e); }
 
     const overlay = document.getElementById('loginOverlay');
     const gameWrapper = document.getElementById('gameWrapper');
@@ -508,6 +509,51 @@
     const userAvatar = document.getElementById('userAvatar');
     const userNameDisplay = document.getElementById('userNameDisplay');
     const playerName = document.getElementById('playerName');
+
+    // 顯示過場動畫的函式
+    function showSplashScreen(userData) {
+        console.log("顯示過場動畫...");
+        const splashScreen = document.getElementById('splashScreen');
+        const splashContent = document.getElementById('splashContent');
+        const splashAvatar = document.getElementById('splashAvatar');
+        const splashWelcome = document.getElementById('splashWelcome');
+
+        // 設定過場資料
+        if (splashAvatar) splashAvatar.src = userData.photo;
+        if (splashWelcome) splashWelcome.textContent = `歡迎回來, ${userData.name}!`;
+
+        // 顯示過場
+        splashScreen.style.display = 'flex';
+        // 強制重繪以觸發動畫
+        void splashContent.offsetWidth; 
+        splashContent.classList.add('splash-pop-in');
+
+        // 設定遊戲介面資料 (在背景偷偷做)
+        userNameDisplay.textContent = userData.name;
+        playerName.textContent = userData.name;
+        userAvatar.src = userData.photo;
+        
+        window.playerData.pokeBalls = userData.pokeBalls || 0;
+        window.playerData.pokemonBag = userData.pokemonBag || [];
+        window.playerData.mistakes = userData.mistakes || [];
+        window.playerData.level = userData.playerLevel || 1;
+        window.playerData.exp = userData.playerExp || 0;
+        
+        if(window.updateUIFromCloud) window.updateUIFromCloud();
+
+        // 2.5 秒後淡出並進入遊戲
+        setTimeout(() => {
+            console.log("過場結束，進入遊戲");
+            splashScreen.classList.add('splash-fade-out');
+            
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+                splashScreen.classList.remove('splash-fade-out');
+                splashContent.classList.remove('splash-pop-in');
+                gameWrapper.style.display = 'flex'; // 顯示遊戲主畫面
+            }, 800); // 配合 CSS transition 0.8s
+        }, 2500);
+    }
 
     if (auth && db) {
         btnGoogleLogin.addEventListener('click', () => {
@@ -521,10 +567,15 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                console.log("偵測到使用者登入:", user.uid);
+                // 隱藏登入遮罩，準備顯示過場或審核警告
+                overlay.style.display = 'none';
+
                 userRef = doc(db, "users", user.uid);
                 const userSnap = await getDoc(userRef);
 
                 if (!userSnap.exists()) {
+                    console.log("新使用者，建立資料...");
                     await setDoc(userRef, {
                         name: user.displayName, email: user.email, photo: user.photoURL,
                         isApproved: false, role: "user", 
@@ -533,57 +584,25 @@
                     });
                     alert("註冊成功！等待管理員審核。");
                     await signOut(auth);
+                    location.reload(); // 重整回到登入畫面
                 } else {
                     const data = userSnap.data();
                     if (data.isApproved) {
-                       // 1. 隱藏登入遮罩
-                        overlay.style.display = 'none';
-                        
-                        // 2. 準備過場動畫資料
-                        const splashScreen = document.getElementById('splashScreen');
-                        const splashContent = document.getElementById('splashContent');
-                        document.getElementById('splashAvatar').src = data.photo;
-                        document.getElementById('splashWelcome').textContent = `歡迎回來, ${data.name}!`;
-
-                        // 3. 顯示過場並觸發「炸出來」動畫
-                        splashScreen.style.display = 'flex';
-                        // 強制瀏覽器重繪，確保動畫會重新觸發
-                        void splashContent.offsetWidth; 
-                        splashContent.classList.add('splash-pop-in');
-
-                        // 4. 在背景同步更新遊戲介面資料
-                        userNameDisplay.textContent = data.name;
-                        playerName.textContent = data.name;
-                        userAvatar.src = data.photo;
-                        window.playerData.pokeBalls = data.pokeBalls || 0;
-                        window.playerData.pokemonBag = data.pokemonBag || [];
-                        window.playerData.mistakes = data.mistakes || [];
-                        window.playerData.level = data.playerLevel || 1;
-                        window.playerData.exp = data.playerExp || 0;
-                        window.updateUIFromCloud();
-
-                        // 5. 等待 2 秒後開始淡出，再切換到遊戲畫面
-                        setTimeout(() => {
-                            // 開始淡出
-                            splashScreen.classList.add('splash-fade-out');
-                            
-                            // 等待淡出動畫結束 (0.8秒) 後，完全隱藏過場並顯示遊戲
-                            setTimeout(() => {
-                                splashScreen.style.display = 'none';
-                                splashScreen.classList.remove('splash-fade-out'); // 清理 class
-                                splashContent.classList.remove('splash-pop-in'); // 清理 class
-                                gameWrapper.style.display = 'flex'; // 顯示遊戲主畫面
-                            }, 800); // 這個時間要配合 CSS 的 transition: opacity 0.8s
-
-                        }, 2000); // 過場畫面停留時間 (2秒)
+                        console.log("審核通過，啟動過場動畫");
+                        showSplashScreen(data);
                     } else {
+                        console.log("審核未通過");
                         alert("尚未通過審核。");
                         await signOut(auth);
+                        location.reload();
                     }
                 }
             } else {
+                console.log("未登入狀態");
                 overlay.style.display = 'flex';
                 gameWrapper.style.display = 'none';
+                const splashScreen = document.getElementById('splashScreen');
+                if(splashScreen) splashScreen.style.display = 'none';
             }
         });
     }
@@ -591,7 +610,6 @@
     window.saveCloudData = async (type, payload) => {
         if (!userRef) return;
         try {
-            // 每次都更新狀態
             const updateObj = {
                 pokeBalls: window.playerData.pokeBalls,
                 playerLevel: window.playerData.level,
@@ -610,7 +628,6 @@
                     mistakes: arrayUnion(payload.word) 
                 });
             } else {
-                // 只是更新數值 (如買藥水)
                 await updateDoc(userRef, updateObj);
             }
         } catch (e) { console.error("存檔失敗", e); }
