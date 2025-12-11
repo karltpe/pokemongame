@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>寶可夢單字 RPG (Level Up Edition)</title>
+    <title>寶可夢單字 RPG (Fix Edition)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
@@ -12,7 +12,6 @@
             --secondary-color: #2a75bb;
             --danger-color: #ff3333;
             --success-color: #4caf50;
-            --exp-color: #00bcd4; /* 經驗條顏色 */
             --boss-color: #673ab7;
             --font-main: 'Comic Sans MS', 'Microsoft JhengHei', sans-serif;
         }
@@ -23,9 +22,13 @@
             font-family: var(--font-main);
             background-color: var(--bg-color);
             background-image: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
-            margin: 0; padding: 10px;
-            display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; user-select: none;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
             -webkit-tap-highlight-color: transparent; 
         }
 
@@ -55,10 +58,15 @@
         }
 
         .game-frame {
-            width: 100%; background: rgba(255,255,255,0.95);
-            border-radius: 20px; border: 4px solid var(--secondary-color);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 15px;
-            position: relative; overflow: hidden; transition: border-color 0.5s;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            border: 4px solid var(--secondary-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.5s;
         }
         .game-frame.boss-mode { border-color: var(--boss-color); box-shadow: 0 0 15px var(--boss-color); }
 
@@ -72,7 +80,7 @@
         .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; }
         
         .currency-box { display: flex; align-items: center; gap: 3px; font-weight: bold; color: #333; }
-        .coin-icon { width: 24px; height: 24px; vertical-align: middle; }
+        .ball-icon { width: 20px; height: 20px; }
         
         .menu-btns { display: flex; gap: 5px; }
         .btn-top {
@@ -84,34 +92,30 @@
 
         /* --- 戰鬥場景 --- */
         .battle-scene {
-            height: 220px; background: #e0f7fa; border-radius: 15px; border: 3px solid #333;
+            height: 240px; background: #e0f7fa; border-radius: 15px; border: 3px solid #333;
             position: relative; margin-bottom: 15px;
             background-image: radial-gradient(circle at 50% 120%, #81c784 40%, transparent 40%); 
             transition: filter 0.5s; overflow: hidden; 
         }
         .battle-scene.boss-bg { filter: hue-rotate(240deg); }
 
-        /* 血條容器 */
+        /* 血條 */
         .hp-box {
             position: absolute; background: #fff; border: 2px solid #333; border-radius: 8px;
-            padding: 4px 8px; width: 130px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); z-index: 10;
+            padding: 4px 8px; width: 120px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); z-index: 10;
         }
-        .hp-label { font-size: 0.75em; font-weight: bold; display: flex; justify-content: space-between; white-space: nowrap; overflow: hidden; margin-bottom: 2px;}
-        .hp-bar-bg { width: 100%; height: 6px; background: #555; border-radius: 3px; margin-bottom: 2px; }
+        .hp-label { font-size: 0.75em; font-weight: bold; display: flex; justify-content: space-between; white-space: nowrap; overflow: hidden;}
+        .hp-bar-bg { width: 100%; height: 6px; background: #555; border-radius: 3px; margin-top: 2px; }
         .hp-bar-fill { height: 100%; width: 100%; transition: width 0.3s ease-out; }
-        .hp-green { background: #4caf50; } .hp-red { background: #f44336; } 
-        
-        /* 經驗條 (RPG 新增) */
-        .exp-bar-bg { width: 100%; height: 4px; background: #ddd; border-radius: 2px; margin-top: 2px; }
-        .exp-bar-fill { height: 100%; width: 0%; background: var(--exp-color); transition: width 0.3s ease-out; }
-        .level-text { font-size: 0.8em; color: var(--secondary-color); font-weight: bold; margin-right: 5px; }
+        .hp-green { background: #4caf50; } .hp-red { background: #f44336; } .hp-purple { background: #9c27b0; } 
 
         .player-hud { top: 15px; left: 15px; }
-        .enemy-hud { bottom: 15px; right: 15px; }
+        .enemy-hud { bottom: 15px; right: 15px; width: 140px; }
 
-        /* 角色圖片 */
+        /* 角色圖片 (修正版：強制限制大小) */
         .enemy-pos { 
-            position: absolute; top: 30px; right: 20px; width: 120px; height: 120px;
+            position: absolute; top: 40px; right: 30px; 
+            width: 120px; height: 120px; /* 固定容器大小 */
             display: flex; justify-content: center; align-items: center;
         }
         .enemy-img {
@@ -121,23 +125,24 @@
         }
         .enemy-img.boss-size { transform: scale(1.3); filter: drop-shadow(0 0 15px var(--boss-color)); }
 
-        .player-pos { position: absolute; bottom: 0px; left: 20px; width: 110px; height: 110px; }
+        .player-pos { 
+            position: absolute; bottom: 10px; left: 30px; 
+            width: 110px; height: 110px; /* 固定容器大小 */
+        }
         .player-img { 
             width: 100%; height: 100%; 
-            /* 預設皮卡丘 */
             background-image: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png'); 
             background-size: contain; background-repeat: no-repeat; background-position: bottom; 
             transform: scale(1.6); transform-origin: bottom center;
         }
 
         /* --- 特效 --- */
-        .damage-text { position: absolute; font-size: 1.5em; font-weight: 900; text-shadow: 1px 1px 0 #fff; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
+        .damage-text { position: absolute; font-size: 2em; font-weight: 900; color: #ff3333; text-shadow: 2px 2px 0 #fff; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
         .shake { animation: shakeAnim 0.5s; }
         @keyframes shakeAnim { 0% { transform: translate(0, 0); } 25% { transform: translate(-8px, 0); filter: hue-rotate(90deg); } 50% { transform: translate(8px, 0); } 75% { transform: translate(-8px, 0); } 100% { transform: translate(0, 0); filter: none; } }
         .attack-anim { animation: lunge 0.2s forwards; }
         @keyframes lunge { 50% { transform: translateX(40px) scale(1.1); } }
-        
         .levelup-anim { animation: jump 0.5s ease-in-out 3; filter: drop-shadow(0 0 10px gold); }
         @keyframes jump { 0%, 100% { transform: scale(1.6) translateY(0); } 50% { transform: scale(1.6) translateY(-20px); } }
 
@@ -152,7 +157,12 @@
         .q-word { font-size: 1.6em; color: var(--secondary-color); font-weight: bold; line-height: 1.2; }
         .q-hint { color: #666; font-size: 0.9em; margin-top: 5px; line-height: 1.3; }
 
-        .input-area { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .game-over-title { color: #2a75bb; font-size: 1.8em; font-weight: bold; margin: 10px 0; }
+        
+        /* 輸入區 */
+        .input-area { 
+            display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; 
+        }
         #userInput {
             padding: 12px; font-size: 1.2em; border: 3px solid #ccc; border-radius: 12px;
             width: 100%; text-align: center; font-weight: bold; font-family: monospace;
@@ -160,10 +170,12 @@
         }
         #userInput:focus { border-color: var(--primary-color); outline: none; }
 
+        .btn-group { display: flex; gap: 8px; width: 100%; }
         .btn {
             border: none; border-radius: 10px; padding: 12px;
             font-size: 1em; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; color: white; flex: 1; 
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; color: white;
+            flex: 1; 
         }
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn:disabled { background: #ccc !important; box-shadow: none !important; cursor: not-allowed; opacity: 0.7; }
@@ -173,17 +185,22 @@
         .voice-controls { display: flex; justify-content: center; gap: 8px; align-items: center; margin-bottom: 10px; }
         .btn-voice { background: #2196f3; padding: 8px 12px; font-size: 0.9em; min-width: auto; }
 
-        .level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(32px, 1fr)); gap: 4px; margin-bottom: 15px; }
+        /* 關卡格子 */
+        .level-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+            gap: 4px; margin-bottom: 15px;
+        }
         .lvl-btn {
             background: #fff; border: 2px solid var(--secondary-color); color: var(--secondary-color);
-            border-radius: 6px; padding: 6px 0; font-weight: bold; cursor: pointer; text-align: center; font-size: 0.9em;
+            border-radius: 6px; padding: 6px 0; font-weight: bold; cursor: pointer; text-align: center;
+            font-size: 0.9em;
         }
         .lvl-btn.active { background: var(--primary-color); color: #333; border-color: #333; }
         .lvl-btn.has-review { position: relative; border-color: red; color: red; }
 
         .msg-box { height: 25px; font-weight: bold; color: #333; margin-top: 5px; font-size: 0.95em; }
         
-        /* --- 彈窗 --- */
+        /* --- 彈窗系統 --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 2000;
@@ -191,34 +208,72 @@
         }
         .modal-content {
             background: #fff; padding: 15px; border-radius: 15px; width: 100%; max-width: 400px;
-            max-height: 90vh; overflow-y: auto; text-align: center; border: 4px solid #fff; position: relative;
+            max-height: 90vh; overflow-y: auto; text-align: center; border: 4px solid #fff;
+            position: relative;
         }
         .shop-content { border-color: #9c27b0; }
         .bag-content { border-color: #ff5722; }
 
         .shop-item {
             display: flex; justify-content: space-between; align-items: center;
-            background: #f3e5f5; padding: 12px; border-radius: 10px; margin: 10px 0; border: 2px solid #e1bee7;
+            background: #f3e5f5; padding: 12px; border-radius: 10px; margin: 10px 0;
+            border: 2px solid #e1bee7;
         }
         .btn-buy { background: #9c27b0; padding: 8px 16px; font-size: 0.9em; border-radius: 20px; color: white; border: none; font-weight: bold;}
 
-        /* 背包堆疊樣式 */
-        .pokedex-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; padding: 5px; }
+        /* --- 背包系統 --- */
+        .bag-tools {
+            display: flex; gap: 5px; margin-bottom: 10px; justify-content: center;
+        }
+        .bag-search {
+            flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 0.9em;
+        }
+        .btn-sort {
+            background: #607d8b; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;
+        }
+
+        .pokedex-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            margin-top: 10px; padding: 5px;
+        }
+        
         .poke-card {
             background: #fbe9e7; border: 1px solid #ffccbc; border-radius: 8px;
-            padding: 5px; display: flex; flex-direction: column; align-items: center; position: relative;
+            padding: 5px; display: flex; flex-direction: column; align-items: center;
+            position: relative;
         }
         .poke-card img { width: 50px; height: 50px; object-fit: contain; }
         .poke-name { font-size: 0.75em; font-weight: bold; color: #e91e63; margin-top: 2px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+        .poke-word { font-size: 0.6em; color: #888; }
         
         .count-badge {
             position: absolute; top: 2px; right: 2px;
             background-color: #d32f2f; color: white; font-size: 0.7em; font-weight: bold;
             padding: 1px 5px; border-radius: 10px; box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
+        .level-badge {
+            position: absolute; top: 2px; left: 2px;
+            background-color: #4caf50; color: white;
+            font-size: 0.6em; font-weight: bold;
+            padding: 1px 4px; border-radius: 4px;
+        }
+        
+        .pagination-controls {
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            margin-top: 15px; font-weight: bold; color: #555;
+        }
+        .btn-page {
+            background: #ff5722; color: white; border: none; width: 30px; height: 30px;
+            border-radius: 50%; cursor: pointer; font-weight: bold;
+        }
+        .btn-page:disabled { background: #ccc; }
+        .page-input {
+            width: 40px; text-align: center; border: 1px solid #ccc; border-radius: 5px; padding: 3px; font-weight: bold;
+        }
 
         .btn-photo { background: #00bcd4; width: 100%; margin-top: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-weight: bold; font-size: 1em; cursor: pointer;}
         .btn-close { background: #666; margin-top: 10px; padding: 8px 20px; border-radius: 20px; color: white; border: none; font-weight: bold; cursor: pointer;}
+
         .hidden { display: none !important; }
 
         @media (max-width: 480px) {
@@ -229,7 +284,58 @@
             .input-group { flex-direction: column; }
             .voice-controls button, .voice-controls input { flex: 1; }
             .rate-controls { display: none; } 
+            .pokedex-grid { grid-template-columns: repeat(3, 1fr); } 
+            .poke-card img { width: 40px; height: 40px; }
         }
+		
+		/* --- 過場動畫 (Splash Screen) --- */
+        #splashScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.98); /* 幾乎不透明的白色背景 */
+            z-index: 5000; /* 介於登入畫面和遊戲畫面之間 */
+            display: none; /* 預設隱藏 */
+            justify-content: center; align-items: center;
+            flex-direction: column;
+            transition: opacity 0.8s ease-out; /* 淡出效果 */
+        }
+
+        /* 內容容器 (負責炸出來的動畫) */
+        .splash-content {
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.5); /* 初始狀態縮小 */
+        }
+
+        /* "炸出來"動畫 Class */
+        .splash-pop-in {
+            animation: popInAnim 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; /* 帶有彈性的放大效果 */
+        }
+
+        @keyframes popInAnim {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* "淡出" Class */
+        .splash-fade-out {
+            opacity: 0;
+            pointer-events: none; /* 淡出時不阻擋滑鼠事件 */
+        }
+
+        /* 過場元素樣式 */
+        .splash-ball-icon {
+            width: 80px; height: 80px; margin-bottom: 15px;
+            animation: spinSlow 3s linear infinite;
+        }
+        @keyframes spinSlow { 100% { transform: rotate(360deg); } }
+        
+        .splash-avatar {
+            width: 100px; height: 100px; border-radius: 50%;
+            border: 5px solid var(--primary-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); margin-bottom: 10px;
+        }
+        #splashWelcome { color: var(--secondary-color); font-size: 1.8em; margin: 5px 0; }
+		
     </style>
 </head>
 <body>
@@ -237,14 +343,23 @@
 <div id="loginOverlay">
     <div class="login-card">
         <div style="font-size: 3em; margin-bottom: 10px;">⚡</div>
-        <h2 style="margin: 0 0 20px 0; color: #2a75bb;">寶可夢單字 RPG</h2>
+        <h2 style="margin: 0 0 20px 0; color: #2a75bb;">寶可夢單字大冒險</h2>
         <button id="btnGoogleLogin" class="btn-google-login">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="24" height="24">
             Google 登入
         </button>
         <p style="margin-top: 20px; color: #666; font-size: 0.85em;">
-            請使用 Live Server 開啟<br>登入以保存進度
+            請使用 Live Server 開啟<br>登入後紀錄冒險進度
         </p>
+    </div>
+</div>
+
+</div> <div id="splashScreen">
+    <div class="splash-content" id="splashContent">
+        <img src="https://raw.githubusercontent.com/karltpe/pokemongame/1aea82ed221fbf4721f97066081951ec433e00cb/openning.jpg" class="splash-ball-icon">
+        <img id="splashAvatar" class="splash-avatar" src="">
+        <h2 id="splashWelcome">歡迎回來!</h2>
+        <p style="color:#666; font-size:0.9em;">冒險準備中...</p>
     </div>
 </div>
 
@@ -257,8 +372,8 @@
                 <button id="btnLogout" style="background:none; border:none; font-size:1.2em; cursor:pointer;">🚪</button>
             </div>
             <div class="currency-box">
-                <img src="https://cdn-icons-png.flaticon.com/512/11529/11529267.png" class="ball-icon" alt="Coin">
-                x <span id="coinCount">0</span>
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" class="ball-icon" alt="Ball">
+                x <span id="ballCount">0</span>
             </div>
             <div class="menu-btns">
                 <button class="btn-top btn-bag" id="btnBag">🎒</button>
@@ -270,18 +385,20 @@
 
         <div class="battle-scene" id="battleScene">
             <div class="hp-box enemy-hud">
-                <div class="hp-label"><span id="enemyName">野生寶可夢</span> <span id="enemyHpText">100%</span></div>
+                <div class="hp-label"><span id="enemyName">野生怪獸</span> <span id="enemyHpText">100%</span></div>
                 <div class="hp-bar-bg"><div class="hp-bar-fill hp-red" id="enemyHpBar"></div></div>
             </div>
             <div class="enemy-pos"><div class="enemy-img" id="enemyImg"></div></div>
 
             <div class="hp-box player-hud">
                 <div class="hp-label">
-                    <span id="playerName">我</span> 
-                    <span id="playerLevelText" class="level-text">Lv.1</span>
+                    <span id="playerName">訓練家</span> 
+                    <span id="playerLevelText" style="color:var(--secondary-color);">Lv.1</span>
                 </div>
                 <div class="hp-bar-bg"><div class="hp-bar-fill hp-green" id="playerHpBar"></div></div>
-                <div class="exp-bar-bg"><div class="exp-bar-fill" id="playerExpBar"></div></div>
+                <div style="width:100%; height:4px; background:#ddd; border-radius:2px; margin-top:2px;">
+                    <div id="playerExpBar" style="height:100%; width:0%; background:#00bcd4; transition:width 0.3s;"></div>
+                </div>
             </div>
             <div class="player-pos"><div class="player-img" id="playerImg"></div></div>
         </div>
@@ -313,14 +430,14 @@
 
 <div class="modal-overlay" id="shopModal">
     <div class="modal-content shop-content">
-        <h2 style="margin:0 0 10px 0; color:#9c27b0;">道具商店</h2>
+        <h2 style="margin:0 0 10px 0; color:#9c27b0;">寶可夢中心商店</h2>
         <div class="shop-item">
             <div style="text-align:left;">
                 <div style="font-weight:bold;">💖 全滿藥</div>
-                <div style="font-size:0.8em; color:#666;">回復所有生命</div>
+                <div style="font-size:0.8em; color:#666;">回復 1 點生命值</div>
             </div>
             <div style="text-align:right;">
-                <div class="shop-price">50 金幣</div>
+                <div class="shop-price">3 球</div>
                 <button class="btn btn-buy" id="btnBuyPotion">購買</button>
             </div>
         </div>
@@ -332,8 +449,22 @@
     <div class="modal-content bag-content" id="bagContentArea">
         <h3 style="margin:0 0 5px 0; color:#ff5722;">我的寶可夢背包</h3>
         <div style="font-size:0.9em; color:#666; margin-bottom:10px;">已收服: <span id="totalCaught">0</span> 隻</div>
+        
+        <div class="bag-tools">
+            <input type="text" id="bagSearch" class="bag-search" placeholder="搜尋寶可夢...">
+            <button class="btn-sort" id="btnSort">排序: 最新</button>
+        </div>
+
         <div id="pokedexGrid" class="pokedex-grid"></div>
         <p id="emptyBagMsg" style="color:#888; display:none;">還沒抓到任何寶可夢。</p>
+        
+        <div class="pagination-controls" id="bagPagination" style="display:none;">
+            <button class="btn-page" id="btnPrevPage">❮</button>
+            <input type="number" id="pageInput" class="page-input" value="1" min="1">
+            <span id="totalPagesText">/ 1</span>
+            <button class="btn-page" id="btnNextPage">❯</button>
+        </div>
+
         <button class="btn-photo" id="btnPhoto">📸 製作戰績卡</button>
         <button class="btn-close" id="btnCloseBag">關閉</button>
     </div>
@@ -348,13 +479,12 @@
     // ⚠️ 請務必填入您的 CONFIG
     // ***************************************************************
     const firebaseConfig = {
-		apiKey: "AIzaSyDob5OyYtOjTXCK16iu741sn6KX-rNWa-Q",
-		authDomain: "gept-pokemon-game.firebaseapp.com",
-		projectId: "gept-pokemon-game",
-		storageBucket: "gept-pokemon-game.firebasestorage.app",
-		messagingSenderId: "345364092934",
-		appId: "1:345364092934:web:57a18217cdd874c4ed0b87",
-		measurementId: "G-NJ756ZPF8M"
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
     };
 
     let auth, db, userRef;
@@ -370,7 +500,7 @@
     const btnLogout = document.getElementById('btnLogout');
     const userAvatar = document.getElementById('userAvatar');
     const userNameDisplay = document.getElementById('userNameDisplay');
-    const playerName = document.getElementById('playerName'); // 戰鬥畫面名字
+    const playerName = document.getElementById('playerName');
 
     if (auth && db) {
         btnGoogleLogin.addEventListener('click', () => {
@@ -391,12 +521,7 @@
                     await setDoc(userRef, {
                         name: user.displayName, email: user.email, photo: user.photoURL,
                         isApproved: false, role: "user", 
-                        // RPG 資料初始化
-                        coins: 0, 
-                        pokemonBag: [], 
-                        mistakes: [],
-                        playerLevel: 1,
-                        playerExp: 0,
+                        pokeBalls: 0, pokemonBag: [], mistakes: [], playerLevel: 1, playerExp: 0,
                         createdAt: new Date().toISOString()
                     });
                     alert("註冊成功！等待管理員審核。");
@@ -404,21 +529,46 @@
                 } else {
                     const data = userSnap.data();
                     if (data.isApproved) {
+                       // 1. 隱藏登入遮罩
                         overlay.style.display = 'none';
-                        gameWrapper.style.display = 'flex';
-                        // 更新 UI 名字
+                        
+                        // 2. 準備過場動畫資料
+                        const splashScreen = document.getElementById('splashScreen');
+                        const splashContent = document.getElementById('splashContent');
+                        document.getElementById('splashAvatar').src = data.photo;
+                        document.getElementById('splashWelcome').textContent = `歡迎回來, ${data.name}!`;
+
+                        // 3. 顯示過場並觸發「炸出來」動畫
+                        splashScreen.style.display = 'flex';
+                        // 強制瀏覽器重繪，確保動畫會重新觸發
+                        void splashContent.offsetWidth; 
+                        splashContent.classList.add('splash-pop-in');
+
+                        // 4. 在背景同步更新遊戲介面資料
                         userNameDisplay.textContent = data.name;
                         playerName.textContent = data.name;
                         userAvatar.src = data.photo;
-                        
-                        // 讀取資料
-                        window.playerData.coins = data.coins || 0;
+                        window.playerData.pokeBalls = data.pokeBalls || 0;
                         window.playerData.pokemonBag = data.pokemonBag || [];
                         window.playerData.mistakes = data.mistakes || [];
                         window.playerData.level = data.playerLevel || 1;
                         window.playerData.exp = data.playerExp || 0;
-                        
                         window.updateUIFromCloud();
+
+                        // 5. 等待 2 秒後開始淡出，再切換到遊戲畫面
+                        setTimeout(() => {
+                            // 開始淡出
+                            splashScreen.classList.add('splash-fade-out');
+                            
+                            // 等待淡出動畫結束 (0.8秒) 後，完全隱藏過場並顯示遊戲
+                            setTimeout(() => {
+                                splashScreen.style.display = 'none';
+                                splashScreen.classList.remove('splash-fade-out'); // 清理 class
+                                splashContent.classList.remove('splash-pop-in'); // 清理 class
+                                gameWrapper.style.display = 'flex'; // 顯示遊戲主畫面
+                            }, 800); // 這個時間要配合 CSS 的 transition: opacity 0.8s
+
+                        }, 2000); // 過場畫面停留時間 (2秒)
                     } else {
                         alert("尚未通過審核。");
                         await signOut(auth);
@@ -431,33 +581,30 @@
         });
     }
 
-    // 存檔 (更新版)
     window.saveCloudData = async (type, payload) => {
         if (!userRef) return;
         try {
-            const updateObj = {};
-            if (type === 'update_stats') { // 更新錢、等級、經驗
-                updateObj.coins = window.playerData.coins;
-                updateObj.playerLevel = window.playerData.level;
-                updateObj.playerExp = window.playerData.exp;
-            } 
-            
+            // 每次都更新狀態
+            const updateObj = {
+                pokeBalls: window.playerData.pokeBalls,
+                playerLevel: window.playerData.level,
+                playerExp: window.playerData.exp
+            };
+
             if (type === 'catch_pokemon') {
-                updateObj.coins = window.playerData.coins;
-                updateObj.playerLevel = window.playerData.level;
-                updateObj.playerExp = window.playerData.exp;
                 await updateDoc(userRef, { 
                     ...updateObj,
                     pokemonBag: arrayUnion(payload.pokemon),
                     mistakes: arrayRemove(payload.word)
                 });
-                return;
-            }
-
-            if (Object.keys(updateObj).length > 0) await updateDoc(userRef, updateObj);
-            
-            if (type === 'add_mistake') {
-                await updateDoc(userRef, { mistakes: arrayUnion(payload.word) });
+            } else if (type === 'add_mistake') {
+                await updateDoc(userRef, { 
+                    ...updateObj,
+                    mistakes: arrayUnion(payload.word) 
+                });
+            } else {
+                // 只是更新數值 (如買藥水)
+                await updateDoc(userRef, updateObj);
             }
         } catch (e) { console.error("存檔失敗", e); }
     };
@@ -467,11 +614,14 @@
     const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/karltpe/MikeEnglishTest/main/word_ad.json';
     const LEGENDARY_IDS = [144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 382, 383, 384, 483, 484, 487, 493];
     
-    // 全域變數 (RPG)
-    window.playerData = { coins: 0, pokemonBag: [], mistakes: [], level: 1, exp: 0 };
-    
-    // 等級計算: 升級所需經驗 = 等級 * 100
+    window.playerData = { pokeBalls: 0, pokemonBag: [], mistakes: [], level: 1, exp: 0 };
     const getMaxExp = (lvl) => lvl * 100;
+
+    // --- 背包分頁/搜尋/排序 ---
+    const ITEMS_PER_PAGE = 9;
+    let currentBagPage = 1;
+    let bagSortOrder = 'newest'; 
+    let bagSearchTerm = '';
     
     // 名稱快取
     const pokemonNameCache = {};
@@ -492,7 +642,7 @@
         let id;
         const ownedIds = new Set(window.playerData.pokemonBag.map(p => p.speciesId));
         let foundNew = false;
-        // 降低「新怪機率」以符合需求
+        // 降低「新怪機率」以避免卡住
         for(let i=0; i<15; i++) { 
              if (isBoss) id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
              else do { id = Math.floor(Math.random() * 800) + 1; } while (LEGENDARY_IDS.includes(id));
@@ -526,7 +676,15 @@
         btnPhoto: document.getElementById('btnPhoto'), btnCloseBag: document.getElementById('btnCloseBag'),
         bagContentArea: document.getElementById('bagContentArea'),
         totalCaught: document.getElementById('totalCaught'),
-        rateSlider: document.getElementById('rateSlider')
+        rateSlider: document.getElementById('rateSlider'),
+        // 背包控制
+        bagPagination: document.getElementById('bagPagination'),
+        btnPrevPage: document.getElementById('btnPrevPage'),
+        btnNextPage: document.getElementById('btnNextPage'),
+        pageInput: document.getElementById('pageInput'),
+        totalPagesText: document.getElementById('totalPagesText'),
+        bagSearch: document.getElementById('bagSearch'),
+        btnSort: document.getElementById('btnSort')
     };
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -556,9 +714,9 @@
     };
 
     window.updateUIFromCloud = () => {
-        el.ballCount.textContent = window.playerData.coins;
+        el.ballCount.textContent = window.playerData.pokeBalls;
         renderBag();
-        updateStats(); // 更新血量、經驗條
+        updateStats(); // 確保剛登入時更新等級/經驗條
         
         const mistakeSet = new Set(window.playerData.mistakes.map(m => m.charAt(0).toUpperCase()));
         document.querySelectorAll('.lvl-btn').forEach(btn => {
@@ -576,6 +734,7 @@
             el.levelGrid.appendChild(b);
         });
 
+        // 強制使用 PokeAPI 的圖，避免 JSON 缺圖
         try {
             el.msgBox.textContent = "正在下載圖鑑...";
             const res = await fetch(GITHUB_JSON_URL + '?t=' + Date.now());
@@ -590,53 +749,80 @@
 
     el.btnShop.onclick = () => { SFX.btn(); el.shopModal.style.display = 'flex'; updateShopUI(); };
     el.btnCloseShop.onclick = () => { SFX.btn(); el.shopModal.style.display = 'none'; };
-    el.btnBag.onclick = () => { SFX.btn(); el.bagModal.style.display = 'flex'; renderBag(); };
+    el.btnBag.onclick = () => { SFX.btn(); currentBagPage = 1; bagSearchTerm = ''; el.bagSearch.value = ''; el.bagModal.style.display = 'flex'; renderBag(); };
     el.btnCloseBag.onclick = () => { SFX.btn(); el.bagModal.style.display = 'none'; };
 
     el.btnBuyPotion.onclick = () => {
-        if (window.playerData.coins >= 50 && playerHp < playerMaxHp) {
-            window.playerData.coins -= 50; playerHp = playerMaxHp; SFX.heal(); updateStats(); updateShopUI();
-            if(window.saveCloudData) window.saveCloudData('update_stats');
-            el.msgBox.textContent = "💖 體力全滿！"; el.msgBox.style.color = "#e91e63";
+        if (window.playerData.pokeBalls >= 3 && playerHp < playerMaxHp) {
+            window.playerData.pokeBalls -= 3; playerHp++; SFX.heal(); updateStats(); updateShopUI();
+            if(window.saveCloudData) window.saveCloudData('ball_use');
+            el.msgBox.textContent = "💖 體力恢復！"; el.msgBox.style.color = "#e91e63";
         } else if (playerHp >= playerMaxHp) { alert("體力已經滿了！"); } 
-        else { alert("金幣不夠喔！"); }
+        else { alert("精靈球不夠喔！"); }
     };
 
     function updateShopUI() {
-        el.btnBuyPotion.textContent = (playerHp >= playerMaxHp) ? "體力已滿" : "購買 (50金幣)";
-        el.btnBuyPotion.disabled = (playerHp >= playerMaxHp || window.playerData.coins < 50);
+        el.btnBuyPotion.textContent = (playerHp >= playerMaxHp) ? "體力已滿" : "購買 (3球)";
+        el.btnBuyPotion.disabled = (playerHp >= playerMaxHp || window.playerData.pokeBalls < 3);
     }
 
+    // --- 背包渲染邏輯 ---
     function renderBag() {
-        // 堆疊邏輯
         const groupedMap = new Map();
         window.playerData.pokemonBag.forEach(p => {
             if (!groupedMap.has(p.speciesId)) groupedMap.set(p.speciesId, { ...p, count: 0 });
             groupedMap.get(p.speciesId).count++;
         });
         
-        let bag = Array.from(groupedMap.values()).reverse();
+        let bag = Array.from(groupedMap.values());
+        
+        if (bagSearchTerm) {
+            bag = bag.filter(p => (p.name && p.name.includes(bagSearchTerm)) || p.word.toLowerCase().includes(bagSearchTerm.toLowerCase()));
+        }
+
+        if (bagSortOrder === 'newest') bag.reverse(); 
+        else bag.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
         el.totalCaught.textContent = window.playerData.pokemonBag.length; 
         el.pokedexGrid.innerHTML = '';
         
         if (bag.length === 0) {
-            el.emptyBagMsg.style.display = 'block'; el.btnPhoto.style.display = 'none';
+            el.emptyBagMsg.style.display = 'block'; el.btnPhoto.style.display = 'none'; el.bagPagination.style.display = 'none';
+            el.emptyBagMsg.textContent = bagSearchTerm ? "找不到符合的寶可夢。" : "目前還是空的。";
         } else {
-            el.emptyBagMsg.style.display = 'none'; el.btnPhoto.style.display = 'block';
-            bag.forEach(p => {
+            el.emptyBagMsg.style.display = 'none'; el.btnPhoto.style.display = 'block'; el.bagPagination.style.display = 'flex';
+            const totalPages = Math.ceil(bag.length / ITEMS_PER_PAGE);
+            if (currentBagPage > totalPages) currentBagPage = totalPages;
+            if (currentBagPage < 1) currentBagPage = 1;
+
+            el.pageInput.value = currentBagPage; el.pageInput.max = totalPages; el.totalPagesText.textContent = `/ ${totalPages}`;
+            el.btnPrevPage.disabled = (currentBagPage === 1); el.btnNextPage.disabled = (currentBagPage === totalPages);
+
+            const start = (currentBagPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageItems = bag.slice(start, end);
+
+            pageItems.forEach(p => {
                 const card = document.createElement('div'); card.className = 'poke-card';
                 const countBadge = p.count > 1 ? `<div class="count-badge">x${p.count}</div>` : '';
-                card.innerHTML = `${countBadge}<img src="${p.img}"><div class="poke-name">${p.name||'???'}</div><div class="poke-word">${p.word}</div>`;
+                const levelBadge = `<div class="level-badge">Lv.${p.level || 1}</div>`;
+                card.innerHTML = `${countBadge}${levelBadge}<img src="${p.img}"><div class="poke-name">${p.name||'???'}</div><div class="poke-word">${p.word}</div>`;
                 el.pokedexGrid.appendChild(card);
             });
         }
     }
 
+    el.bagSearch.addEventListener('input', (e) => { bagSearchTerm = e.target.value; currentBagPage = 1; renderBag(); });
+    el.btnSort.onclick = () => { bagSortOrder = (bagSortOrder === 'newest') ? 'az' : 'newest'; el.btnSort.textContent = (bagSortOrder === 'newest') ? "排序: 最新" : "排序: 名稱"; currentBagPage = 1; renderBag(); };
+    el.btnPrevPage.onclick = () => { if(currentBagPage > 1) { currentBagPage--; renderBag(); SFX.btn(); }};
+    el.btnNextPage.onclick = () => { let bag = [...window.playerData.pokemonBag]; const totalPages = Math.ceil(bag.length / ITEMS_PER_PAGE); if(currentBagPage < totalPages) { currentBagPage++; renderBag(); SFX.btn(); }};
+    el.pageInput.onchange = () => { let p = parseInt(el.pageInput.value); if(p >= 1) { currentBagPage = p; renderBag(); }};
+
     el.btnPhoto.onclick = () => {
         SFX.camera(); el.btnPhoto.textContent = "📷 處理中...";
-        el.btnPhoto.style.visibility = 'hidden'; el.btnCloseBag.style.visibility = 'hidden';
+        el.btnPhoto.style.visibility = 'hidden'; el.btnCloseBag.style.visibility = 'hidden'; el.bagPagination.style.visibility = 'hidden';
         html2canvas(el.bagContentArea, { useCORS: true, scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-            el.btnPhoto.style.visibility = 'visible'; el.btnCloseBag.style.visibility = 'visible';
+            el.btnPhoto.style.visibility = 'visible'; el.btnCloseBag.style.visibility = 'visible'; el.bagPagination.style.visibility = 'visible';
             el.btnPhoto.textContent = "📸 合影留念";
             const link = document.createElement('a'); link.download = 'my-pokedex.png';
             link.href = canvas.toDataURL(); link.click();
@@ -703,6 +889,7 @@
         isBossRound = (stageCount % 5 === 0);
         
         currentEnemyId = getRandomPokemonId(isBossRound);
+        // 強制使用 PokeAPI 圖，忽略 JSON 圖 (修復圖片顯示問題)
         currentEnemyImgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${currentEnemyId}.png`;
         
         el.enemyName.textContent = "???";
@@ -766,46 +953,39 @@
 
                 if (enemyCurrentHp <= 0) {
                     enemyCurrentHp = 0; 
-                    // 1. 獲得經驗 & 金幣 (原本的球)
-                    const expGain = 20; const coinGain = 10;
-                    window.playerData.exp += expGain;
-                    window.playerData.coins += coinGain;
+                    window.playerData.pokeBalls++; // 金幣
                     
-                    // 升級邏輯
+                    // 升級計算
+                    const expGain = 20; window.playerData.exp += expGain;
                     if (window.playerData.exp >= getMaxExp(window.playerData.level)) {
                         window.playerData.exp -= getMaxExp(window.playerData.level);
-                        window.playerData.level++;
-                        playerHp = playerMaxHp; // 升級回滿血
-                        SFX.levelup();
-                        el.msgBox.textContent = `🆙 升級了！Lv.${window.playerData.level}！`;
+                        window.playerData.level++; playerHp = playerMaxHp; SFX.levelup();
+                        el.msgBox.textContent = `🆙 升級！Lv.${window.playerData.level}！`;
                         el.playerImg.classList.add('levelup-anim');
                         setTimeout(() => el.playerImg.classList.remove('levelup-anim'), 1000);
                     } else {
-                        SFX.coin();
-                        el.msgBox.textContent = `💥 收服！+${coinGain}金幣 +${expGain}經驗`;
+                        SFX.coin(); el.msgBox.textContent = `💥 收服！+1球 +${expGain}XP`;
                     }
                     el.msgBox.style.color = "green"; el.enemyImg.style.filter = "brightness(0) opacity(0.5)";
 
-                    // 2. 存入背包
                     const newPokemon = {
                         instanceId: Date.now().toString(36),
                         speciesId: currentEnemyId,
                         img: currentEnemyImgUrl,
                         name: currentEnemyName,
+                        level: 1, // 預設抓到的怪是 1 等
                         word: currentEnemy.word,
                         caughtDate: new Date().toISOString()
                     };
                     window.playerData.pokemonBag.push(newPokemon);
                     
-                    // 3. 移除錯題
                     const mIdx = window.playerData.mistakes.indexOf(currentEnemy.word);
                     if(mIdx > -1) window.playerData.mistakes.splice(mIdx, 1);
 
-                    // 4. 雲端存檔
                     if(window.saveCloudData) window.saveCloudData('catch_pokemon', { pokemon: newPokemon, word: currentEnemy.word });
 
                 } else {
-                    el.msgBox.textContent = `⚔️ 攻擊命中！魔王剩 ${enemyCurrentHp} 血！`; el.msgBox.style.color = "blue";
+                    el.msgBox.textContent = `⚔️ 命中！魔王剩 ${enemyCurrentHp} 血！`; el.msgBox.style.color = "blue";
                 }
                 updateStats(); revealAnswer(true);
             }, 200);
@@ -848,13 +1028,12 @@
         el.playerHpBar.style.width = pPct + "%"; el.playerHpText.textContent = `${playerHp}/${playerMaxHp}`;
         el.playerHpBar.className = "hp-bar-fill " + (pPct > 50 ? "hp-green" : pPct > 20 ? "hp-yellow" : "hp-red");
         
-        // 更新經驗條與等級
         const maxExp = getMaxExp(window.playerData.level);
         const expPct = (window.playerData.exp / maxExp) * 100;
         el.playerExpBar.style.width = expPct + "%";
         el.playerLevelText.textContent = `Lv.${window.playerData.level}`;
 
-        el.ballCount.textContent = window.playerData.coins;
+        el.ballCount.textContent = window.playerData.pokeBalls;
     }
 
     function gameOver(isClear) {
