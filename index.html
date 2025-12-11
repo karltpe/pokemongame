@@ -361,7 +361,7 @@
     </div>
 </div>
 
-</div> <div id="splashScreen">
+<div id="splashScreen">
     <div class="splash-content" id="splashContent">
         <img id="splashAvatar" class="splash-avatar" src="">
         <h2 id="splashWelcome">歡迎回來!</h2>
@@ -482,7 +482,7 @@
     import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // ***************************************************************
-    // ⚠️ 請務必填入您的 CONFIG
+    // ⚠️ CONFIG 保持您的設定
     // ***************************************************************
     const firebaseConfig = {
 		apiKey: "AIzaSyDob5OyYtOjTXCK16iu741sn6KX-rNWa-Q",
@@ -493,6 +493,11 @@
 		appId: "1:345364092934:web:57a18217cdd874c4ed0b87",
 		measurementId: "G-NJ756ZPF8M"
     };
+
+    // --- 關鍵修復：預先定義全域變數，防止報錯卡死 ---
+    if (!window.playerData) {
+        window.playerData = { pokeBalls: 0, pokemonBag: [], mistakes: [], level: 1, exp: 0 };
+    }
 
     let auth, db, userRef;
     try {
@@ -510,7 +515,7 @@
     const userNameDisplay = document.getElementById('userNameDisplay');
     const playerName = document.getElementById('playerName');
 
-    // 顯示過場動畫的函式
+    // 顯示過場動畫的函式 (修復版)
     function showSplashScreen(userData) {
         console.log("顯示過場動畫...");
         const splashScreen = document.getElementById('splashScreen');
@@ -524,22 +529,29 @@
 
         // 顯示過場
         splashScreen.style.display = 'flex';
-        // 強制重繪以觸發動畫
         void splashContent.offsetWidth; 
         splashContent.classList.add('splash-pop-in');
 
-        // 設定遊戲介面資料 (在背景偷偷做)
-        userNameDisplay.textContent = userData.name;
-        playerName.textContent = userData.name;
-        userAvatar.src = userData.photo;
-        
-        window.playerData.pokeBalls = userData.pokeBalls || 0;
-        window.playerData.pokemonBag = userData.pokemonBag || [];
-        window.playerData.mistakes = userData.mistakes || [];
-        window.playerData.level = userData.playerLevel || 1;
-        window.playerData.exp = userData.playerExp || 0;
-        
-        if(window.updateUIFromCloud) window.updateUIFromCloud();
+        // --- 安全地更新資料 (加了 try-catch 防止卡住) ---
+        try {
+            userNameDisplay.textContent = userData.name;
+            playerName.textContent = userData.name;
+            userAvatar.src = userData.photo;
+            
+            // 確保 window.playerData 存在
+            if (!window.playerData) window.playerData = {};
+            
+            window.playerData.pokeBalls = userData.pokeBalls || 0;
+            window.playerData.pokemonBag = userData.pokemonBag || [];
+            window.playerData.mistakes = userData.mistakes || [];
+            window.playerData.level = userData.playerLevel || 1;
+            window.playerData.exp = userData.playerExp || 0;
+            
+            // 如果 updateUIFromCloud 還沒準備好，先略過不報錯
+            if(window.updateUIFromCloud) window.updateUIFromCloud();
+        } catch(err) {
+            console.warn("背景資料更新稍微延遲，但不影響遊戲啟動:", err);
+        }
 
         // 2.5 秒後淡出並進入遊戲
         setTimeout(() => {
@@ -551,8 +563,11 @@
                 splashScreen.classList.remove('splash-fade-out');
                 splashContent.classList.remove('splash-pop-in');
                 gameWrapper.style.display = 'flex'; // 顯示遊戲主畫面
-            }, 800); // 配合 CSS transition 0.8s
-        }, 2500);
+                
+                // 再次嘗試更新 UI，確保數據同步
+                if(window.updateUIFromCloud) window.updateUIFromCloud();
+            }, 800); 
+        }, 2500); 
     }
 
     if (auth && db) {
@@ -568,7 +583,6 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 console.log("偵測到使用者登入:", user.uid);
-                // 隱藏登入遮罩，準備顯示過場或審核警告
                 overlay.style.display = 'none';
 
                 userRef = doc(db, "users", user.uid);
@@ -584,7 +598,7 @@
                     });
                     alert("註冊成功！等待管理員審核。");
                     await signOut(auth);
-                    location.reload(); // 重整回到登入畫面
+                    location.reload(); 
                 } else {
                     const data = userSnap.data();
                     if (data.isApproved) {
