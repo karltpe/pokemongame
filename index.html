@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>寶可夢單字大冒險 (需登入)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>寶可夢單字 RPG (Data Structure Upgrade)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
@@ -16,245 +16,309 @@
             --font-main: 'Comic Sans MS', 'Microsoft JhengHei', sans-serif;
         }
 
+        * { box-sizing: border-box; } 
+
         body {
             font-family: var(--font-main);
             background-color: var(--bg-color);
             background-image: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
             margin: 0;
-            padding: 0; /* 滿版 */
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
             user-select: none;
+            -webkit-tap-highlight-color: transparent; 
         }
 
-        /* --- 登入遮罩 (Login Overlay) --- */
+        /* --- 登入遮罩 --- */
         #loginOverlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* 深色背景 */
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            backdrop-filter: blur(5px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; backdrop-filter: blur(5px); padding: 20px;
         }
         .login-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(255, 203, 5, 0.6);
-            border: 5px solid var(--primary-color);
-            max-width: 90%;
-        }
-        .login-title {
-            color: var(--secondary-color);
-            font-size: 2em;
-            margin-bottom: 20px;
-            font-weight: bold;
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
+            box-shadow: 0 0 30px rgba(255, 203, 5, 0.6); border: 5px solid var(--primary-color);
+            width: 100%; max-width: 400px;
         }
         .btn-google-login {
-            background-color: #4285F4;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-size: 1.2em;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: transform 0.2s, background-color 0.2s;
-            margin: 0 auto;
-        }
-        .btn-google-login:hover {
-            background-color: #357ae8;
-            transform: scale(1.05);
-        }
-        .btn-google-login img {
-            background: white;
-            border-radius: 50%;
-            padding: 2px;
+            background-color: #4285F4; color: white; border: none; padding: 12px 20px;
+            border-radius: 50px; font-size: 1.1em; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; gap: 10px; width: 100%;
+            margin-top: 15px;
         }
 
-        /* --- 遊戲主體 (預設隱藏) --- */
+        /* --- 遊戲主框架 --- */
         #gameWrapper {
-            display: none; /* 登入後才顯示 */
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
+            display: none; width: 100%; max-width: 600px; 
+            flex-direction: column; align-items: center;
         }
 
         .game-frame {
             width: 100%;
-            max-width: 600px;
             background: rgba(255,255,255,0.95);
             border-radius: 20px;
-            border: 5px solid var(--secondary-color);
-            box-shadow: 0 10px 0 rgba(0,0,0,0.2);
+            border: 4px solid var(--secondary-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             padding: 15px;
             position: relative;
             overflow: hidden;
             transition: border-color 0.5s;
         }
-        
-        .game-frame.boss-mode {
-            border-color: var(--boss-color);
-            box-shadow: 0 0 20px var(--boss-color);
-        }
+        .game-frame.boss-mode { border-color: var(--boss-color); box-shadow: 0 0 15px var(--boss-color); }
 
-        /* --- 頂部資訊列 --- */
+        /* --- 頂部資訊 --- */
         .top-bar {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 10px; background: #eee; padding: 5px 10px;
-            border-radius: 10px; border: 2px solid #ccc;
+            margin-bottom: 10px; background: #f0f0f0; padding: 8px 12px;
+            border-radius: 12px; font-size: 0.9em;
         }
-        .user-profile {
-            display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #555;
-        }
-        .user-avatar {
-            width: 32px; height: 32px; border-radius: 50%; border: 2px solid white;
-        }
-        .btn-logout {
-            background: #ff5252; color: white; border: none; padding: 4px 10px;
-            border-radius: 15px; cursor: pointer; font-size: 0.8em;
-        }
-
-        .currency-box { display: flex; align-items: center; gap: 5px; font-weight: bold; color: #333; font-size: 1.1em; }
-        .stage-box { font-weight: bold; color: var(--secondary-color); }
-        .ball-icon { width: 24px; height: 24px; }
+        .user-profile { display: flex; align-items: center; gap: 5px; color: #555; font-weight: bold; }
+        .user-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; }
+        
+        .currency-box { display: flex; align-items: center; gap: 3px; font-weight: bold; color: #333; }
+        .ball-icon { width: 20px; height: 20px; }
+        
         .menu-btns { display: flex; gap: 5px; }
         .btn-top {
-            color: white; border: none; padding: 5px 12px; border-radius: 20px;
-            font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.2);
-            transition: transform 0.1s; font-size: 0.9em;
+            color: white; border: none; padding: 6px 10px; border-radius: 15px;
+            font-weight: bold; cursor: pointer; font-size: 0.85em;
         }
-        .btn-top:active { transform: translateY(3px); box-shadow: none; }
         .btn-shop { background: #9c27b0; }
         .btn-bag { background: #ff5722; }
 
         /* --- 戰鬥場景 --- */
         .battle-scene {
-            height: 260px; background: #e0f7fa; border-radius: 15px; border: 3px solid #333;
-            position: relative; margin-bottom: 20px;
+            height: 220px; background: #e0f7fa; border-radius: 15px; border: 3px solid #333;
+            position: relative; margin-bottom: 15px;
             background-image: radial-gradient(circle at 50% 120%, #81c784 40%, transparent 40%); 
-            transition: filter 0.5s;
+            transition: filter 0.5s; overflow: hidden; 
         }
         .battle-scene.boss-bg { filter: hue-rotate(240deg); }
 
+        /* 血條 */
         .hp-box {
             position: absolute; background: #fff; border: 2px solid #333; border-radius: 8px;
-            padding: 5px 10px; width: 130px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); z-index: 10;
+            padding: 4px 8px; width: 120px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); z-index: 10;
         }
-        .hp-label { font-size: 0.8em; font-weight: bold; display: flex; justify-content: space-between;}
-        .hp-bar-bg { width: 100%; height: 8px; background: #555; border-radius: 5px; margin-top: 3px; overflow: hidden;}
+        .hp-label { font-size: 0.75em; font-weight: bold; display: flex; justify-content: space-between; white-space: nowrap; overflow: hidden;}
+        .hp-bar-bg { width: 100%; height: 6px; background: #555; border-radius: 3px; margin-top: 2px; }
         .hp-bar-fill { height: 100%; width: 100%; transition: width 0.3s ease-out; }
-        .hp-green { background: #4caf50; }
-        .hp-red { background: #f44336; }
-        .hp-purple { background: #9c27b0; } 
+        .hp-green { background: #4caf50; } .hp-red { background: #f44336; } .hp-purple { background: #9c27b0; } 
 
-        .enemy-hud { bottom: 20px; right: 20px; }
-        .player-hud { top: 20px; left: 20px; }
+        .player-hud { top: 15px; left: 15px; }
+        .enemy-hud { bottom: 15px; right: 15px; width: 140px; }
 
-        .enemy-pos { position: absolute; top: 40px; right: 30px; width: 140px; height: 140px; display: flex; justify-content: center; align-items: center; }
-        .enemy-img { width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; transition: all 0.5s; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3)); }
-        .enemy-img.boss-size { transform: scale(1.5); filter: drop-shadow(0 0 15px var(--boss-color)); }
+        /* 角色圖片 */
+        .enemy-pos { 
+            position: absolute; top: 30px; right: 20px; width: 120px; height: 120px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .enemy-img {
+            width: 100%; height: 100%;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            transition: all 0.5s; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+        }
+        .enemy-img.boss-size { transform: scale(1.3); filter: drop-shadow(0 0 15px var(--boss-color)); }
 
-        .player-pos { position: absolute; bottom: 10px; left: 40px; width: 150px; height: 150px; }
-        .player-img { width: 100%; height: 100%; background-image: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom; transform: scale(1.8); transform-origin: bottom center; }
+        .player-pos { position: absolute; bottom: 0px; left: 20px; width: 110px; height: 110px; }
+        .player-img { 
+            width: 100%; height: 100%; 
+            background-image: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/25.png'); 
+            background-size: contain; background-repeat: no-repeat; background-position: bottom; 
+            transform: scale(1.6); transform-origin: bottom center;
+        }
 
-        /* 特效 */
-        .damage-text { position: absolute; font-size: 2.5em; font-weight: 900; color: #ff3333; text-shadow: 2px 2px 0 #fff; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 50% { transform: translateY(-40px) scale(1.5); opacity: 1; } 100% { transform: translateY(-80px) scale(1); opacity: 0; } }
+        /* --- 特效 --- */
+        .damage-text { position: absolute; font-size: 2em; font-weight: 900; color: #ff3333; text-shadow: 2px 2px 0 #fff; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
         .shake { animation: shakeAnim 0.5s; }
-        @keyframes shakeAnim { 0% { transform: translate(0, 0); } 20% { transform: translate(-10px, 0); filter: hue-rotate(90deg); } 40% { transform: translate(10px, 0); } 60% { transform: translate(-10px, 0); } 80% { transform: translate(10px, 0); } 100% { transform: translate(0, 0); filter: none; } }
+        @keyframes shakeAnim { 0% { transform: translate(0, 0); } 25% { transform: translate(-8px, 0); filter: hue-rotate(90deg); } 50% { transform: translate(8px, 0); } 75% { transform: translate(-8px, 0); } 100% { transform: translate(0, 0); filter: none; } }
         .attack-anim { animation: lunge 0.2s forwards; }
-        @keyframes lunge { 0% { transform: translateX(0); } 50% { transform: translateX(50px) scale(1.1); } 100% { transform: translateX(0); } }
+        @keyframes lunge { 50% { transform: translateX(40px) scale(1.1); } }
 
-        /* 控制區 */
+        /* --- 控制面板 --- */
         .control-panel { text-align: center; }
-        .question-box { background: #fff; padding: 10px; border-radius: 10px; border: 2px dashed #aaa; margin-bottom: 15px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .q-word { font-size: 1.8em; color: var(--secondary-color); font-weight: bold; }
-        .q-hint { color: #666; font-size: 0.9em; margin-top: 5px;}
-        .game-over-title { color: #2a75bb; font-size: 2em; font-weight: bold; margin: 10px 0; }
-        .game-over-desc { color: #666; font-size: 1.1em; }
+        
+        .question-box {
+            background: #fff; padding: 10px; border-radius: 10px; border: 2px dashed #aaa;
+            margin-bottom: 15px; min-height: 80px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .q-word { font-size: 1.6em; color: var(--secondary-color); font-weight: bold; line-height: 1.2; }
+        .q-hint { color: #666; font-size: 0.9em; margin-top: 5px; line-height: 1.3; }
 
-        .input-area { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
-        #userInput { padding: 10px; font-size: 1.2em; border: 3px solid #ccc; border-radius: 10px; width: 200px; text-align: center; font-weight: bold; font-family: monospace; color: #333; }
-        #userInput::placeholder { color: #aaa; letter-spacing: 2px; font-weight: normal; }
+        .game-over-title { color: #2a75bb; font-size: 1.8em; font-weight: bold; margin: 10px 0; }
+        
+        /* 輸入區 */
+        .input-area { 
+            display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; 
+        }
+        #userInput {
+            padding: 12px; font-size: 1.2em; border: 3px solid #ccc; border-radius: 12px;
+            width: 100%; text-align: center; font-weight: bold; font-family: monospace;
+            color: #333; background: #fff;
+        }
         #userInput:focus { border-color: var(--primary-color); outline: none; }
 
-        .btn { border: none; border-radius: 10px; padding: 10px 15px; font-size: 1em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; color: white; }
+        .btn-group { display: flex; gap: 8px; width: 100%; }
+        .btn {
+            border: none; border-radius: 10px; padding: 12px;
+            font-size: 1em; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; color: white;
+            flex: 1; 
+        }
         .btn:active { transform: translateY(4px); box-shadow: none; }
-        .btn:disabled { background: #ccc !important; box-shadow: none !important; cursor: not-allowed; }
-        .btn-atk { background: var(--success-color); flex-grow: 1; max-width: 100px; }
+        .btn:disabled { background: #ccc !important; box-shadow: none !important; cursor: not-allowed; opacity: 0.7; }
+        .btn-atk { background: var(--success-color); }
         .btn-run { background: #ff9800; }
-        .btn-voice { background: #2196f3; font-size: 0.9em; padding: 8px 12px; min-width: 80px;}
-        .voice-controls { display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 5px; }
-
-        .level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(35px, 1fr)); gap: 5px; margin-bottom: 15px; }
-        .lvl-btn { background: #fff; border: 2px solid var(--secondary-color); color: var(--secondary-color); border-radius: 5px; padding: 5px; font-weight: bold; cursor: pointer; }
-        .lvl-btn.active { background: var(--primary-color); color: #333; border-color: #333; }
-        .msg-box { height: 25px; font-weight: bold; color: #333; margin-top: 5px; }
         
-        /* 彈窗 */
-        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; display: none; justify-content: center; align-items: center; }
-        .modal-content { background: #fff; padding: 20px; border-radius: 15px; width: 85%; max-height: 80%; text-align: center; border: 4px solid var(--secondary-color); box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow-y: auto; }
+        .voice-controls { display: flex; justify-content: center; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .btn-voice { background: #2196f3; padding: 8px 12px; font-size: 0.9em; min-width: auto; }
+
+        /* 關卡格子 */
+        .level-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
+            gap: 4px; margin-bottom: 15px;
+        }
+        .lvl-btn {
+            background: #fff; border: 2px solid var(--secondary-color); color: var(--secondary-color);
+            border-radius: 6px; padding: 6px 0; font-weight: bold; cursor: pointer; text-align: center;
+            font-size: 0.9em;
+        }
+        .lvl-btn.active { background: var(--primary-color); color: #333; border-color: #333; }
+        .lvl-btn.has-review { position: relative; border-color: red; color: red; }
+
+        .msg-box { height: 25px; font-weight: bold; color: #333; margin-top: 5px; font-size: 0.95em; }
+        
+        /* --- 彈窗系統 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #fff; padding: 15px; border-radius: 15px; width: 100%; max-width: 400px;
+            max-height: 90vh; overflow-y: auto; text-align: center; border: 4px solid #fff;
+            position: relative;
+        }
         .shop-content { border-color: #9c27b0; }
-        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #f3e5f5; padding: 10px; border-radius: 10px; margin: 15px 0; border: 2px solid #e1bee7; }
-        .shop-price { color: #d32f2f; font-weight: bold; }
-        .btn-buy { background: #9c27b0; padding: 5px 15px; font-size: 0.9em;}
         .bag-content { border-color: #ff5722; }
-        .pokedex-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; padding: 5px; }
-        .poke-card { background: #fbe9e7; border: 1px solid #ffccbc; border-radius: 8px; padding: 5px; display: flex; flex-direction: column; align-items: center; }
-        .poke-card img { width: 60px; height: 60px; object-fit: contain; }
-        .poke-name { font-size: 0.8em; font-weight: bold; color: #333; margin-top: 2px; }
-        .btn-photo { background: #00bcd4; width: 100%; margin-top: 10px; }
-        .btn-close { background: #666; margin-top: 10px; }
+
+        .shop-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f3e5f5; padding: 12px; border-radius: 10px; margin: 10px 0;
+            border: 2px solid #e1bee7;
+        }
+        .btn-buy { background: #9c27b0; padding: 8px 16px; font-size: 0.9em; border-radius: 20px; color: white; border: none; font-weight: bold;}
+
+        /* --- 背包系統 --- */
+        .bag-tools {
+            display: flex; gap: 5px; margin-bottom: 10px; justify-content: center;
+        }
+        .bag-search {
+            flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 0.9em;
+        }
+        .btn-sort {
+            background: #607d8b; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8em;
+        }
+
+        .pokedex-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            margin-top: 10px; padding: 5px;
+        }
+        
+        .poke-card {
+            background: #fbe9e7; border: 1px solid #ffccbc; border-radius: 8px;
+            padding: 5px; display: flex; flex-direction: column; align-items: center;
+            position: relative;
+        }
+        .poke-card img { width: 50px; height: 50px; object-fit: contain; }
+        .poke-name { font-size: 0.75em; font-weight: bold; color: #e91e63; margin-top: 2px; width: 100%; overflow: hidden; text-overflow: ellipsis;}
+        .poke-word { font-size: 0.6em; color: #888; }
+        
+        /* 數量標記 */
+        .count-badge {
+            position: absolute; top: 2px; right: 2px;
+            background-color: #d32f2f; color: white;
+            font-size: 0.7em; font-weight: bold;
+            padding: 2px 6px; border-radius: 10px;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        /* 等級標記 */
+        .level-badge {
+            position: absolute; top: 2px; left: 2px;
+            background-color: #4caf50; color: white;
+            font-size: 0.6em; font-weight: bold;
+            padding: 1px 4px; border-radius: 4px;
+        }
+        
+        .pagination-controls {
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            margin-top: 15px; font-weight: bold; color: #555;
+        }
+        .btn-page {
+            background: #ff5722; color: white; border: none; width: 30px; height: 30px;
+            border-radius: 50%; cursor: pointer; font-weight: bold;
+        }
+        .btn-page:disabled { background: #ccc; }
+        .page-input {
+            width: 40px; text-align: center; border: 1px solid #ccc; border-radius: 5px; padding: 3px; font-weight: bold;
+        }
+
+        .btn-photo { background: #00bcd4; width: 100%; margin-top: 15px; padding: 12px; border-radius: 10px; color: white; border: none; font-weight: bold; font-size: 1em; cursor: pointer;}
+        .btn-close { background: #666; margin-top: 10px; padding: 8px 20px; border-radius: 20px; color: white; border: none; font-weight: bold; cursor: pointer;}
+
         .hidden { display: none !important; }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.4em; margin-bottom: 10px; }
+            .battle-scene { height: 180px; } 
+            .enemy-pos { top: 25px; right: 10px; width: 100px; height: 100px; }
+            .player-pos { bottom: 5px; left: 10px; width: 100px; height: 100px; }
+            .input-group { flex-direction: column; }
+            .voice-controls button, .voice-controls input { flex: 1; }
+            .rate-controls { display: none; } 
+            .pokedex-grid { grid-template-columns: repeat(3, 1fr); } 
+            .poke-card img { width: 40px; height: 40px; }
+        }
     </style>
 </head>
 <body>
 
-<div id="loginOverlay" >
+<div id="loginOverlay">
     <div class="login-card">
-        <div class="login-title">🌟 寶可夢單字大冒險 🌟</div>
+        <div style="font-size: 3em; margin-bottom: 10px;">⚡</div>
+        <h2 style="margin: 0 0 20px 0; color: #2a75bb;">寶可夢單字大冒險</h2>
         <button id="btnGoogleLogin" class="btn-google-login">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="24" height="24">
-            使用 Google 登入開始遊戲
+            Google 登入
         </button>
-        <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
-            請使用 Live Server 或 GitHub Pages 開啟<br>
-            登入後可自動存檔
+        <p style="margin-top: 20px; color: #666; font-size: 0.85em;">
+            請使用 Live Server 開啟<br>登入後紀錄冒險進度
         </p>
     </div>
 </div>
 
 <div id="gameWrapper" style="display: none;">
-    
     <div class="game-frame" id="gameFrame">
         <div class="top-bar">
             <div class="user-profile">
                 <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
-                <span id="userName">訓練家</span>
-                <button id="btnLogout" class="btn-logout">登出</button>
+                <span id="userName" style="max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">訓練家</span>
+                <button id="btnLogout" style="background:none; border:none; font-size:1.2em; cursor:pointer;">🚪</button>
             </div>
-
             <div class="currency-box">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" class="ball-icon" alt="Ball">
                 x <span id="ballCount">0</span>
             </div>
-            <div class="stage-box" id="stageInfo">關卡 1</div>
-            
             <div class="menu-btns">
-                <button class="btn-top btn-bag" id="btnBag">🎒 背包</button>
-                <button class="btn-top btn-shop" id="btnShop">🛒 商店</button>
+                <button class="btn-top btn-bag" id="btnBag">🎒</button>
+                <button class="btn-top btn-shop" id="btnShop">🛒</button>
             </div>
         </div>
 
@@ -262,7 +326,7 @@
 
         <div class="battle-scene" id="battleScene">
             <div class="hp-box enemy-hud">
-                <div class="hp-label"><span id="enemyName">野生寶可夢</span> <span id="enemyHpText">100%</span></div>
+                <div class="hp-label"><span id="enemyName">野生怪獸</span> <span id="enemyHpText">100%</span></div>
                 <div class="hp-bar-bg"><div class="hp-bar-fill hp-red" id="enemyHpBar"></div></div>
             </div>
             <div class="enemy-pos"><div class="enemy-img" id="enemyImg"></div></div>
@@ -281,7 +345,9 @@
             </div>
 
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="輸入單字..." disabled autocomplete="off">
+                <input type="text" id="userInput" placeholder="請點此輸入..." disabled autocomplete="off" autocapitalize="off">
+            </div>
+            <div class="input-area btn-group">
                 <button class="btn btn-atk" id="btnAction" disabled>攻擊</button>
                 <button class="btn btn-run" id="btnRun" disabled>逃跑</button>
             </div>
@@ -289,49 +355,62 @@
             <div class="voice-controls">
                 <button class="btn btn-voice" id="btnVoiceWord" disabled>🔊 單字</button>
                 <button class="btn btn-voice" id="btnVoiceSent" disabled>🔊 例句</button>
-                <input type="range" id="rateSlider" min="0.5" max="1.5" step="0.1" value="1.0" title="語速" style="width: 70px;">
             </div>
             
             <div class="msg-box" id="msgBox">準備戰鬥！</div>
         </div>
+    </div>
+</div>
 
-        <div class="modal-overlay" id="shopModal">
-            <div class="modal-content shop-content">
-                <h2 style="margin:0 0 10px 0; color:#9c27b0;">寶可夢中心商店</h2>
-                <div class="shop-item">
-                    <div style="text-align:left;">
-                        <div style="font-weight:bold;">💖 全滿藥</div>
-                        <div style="font-size:0.8em; color:#666;">回復 1 點生命值</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="shop-price">3 球</div>
-                        <button class="btn btn-buy" id="btnBuyPotion">購買</button>
-                    </div>
-                </div>
-                <button class="btn btn-close" id="btnCloseShop">離開</button>
+<div class="modal-overlay" id="shopModal">
+    <div class="modal-content shop-content">
+        <h2 style="margin:0 0 10px 0; color:#9c27b0;">道具商店</h2>
+        <div class="shop-item">
+            <div style="text-align:left;">
+                <div style="font-weight:bold;">💖 全滿藥</div>
+                <div style="font-size:0.8em; color:#666;">回復 1 點生命</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="shop-price">3 球</div>
+                <button class="btn btn-buy" id="btnBuyPotion">購買</button>
             </div>
         </div>
+        <button class="btn-close" id="btnCloseShop">離開</button>
+    </div>
+</div>
 
-        <div class="modal-overlay" id="bagModal">
-            <div class="modal-content bag-content" id="bagContentArea">
-                <h2 style="margin:0 0 10px 0; color:#ff5722;">我的背包</h2>
-                <div id="pokedexGrid" class="pokedex-grid"></div>
-                <p id="emptyBagMsg" style="color:#888;">目前還是空的。</p>
-                <button class="btn btn-photo" id="btnPhoto">📸 合影留念</button>
-                <button class="btn btn-close" id="btnCloseBag">關閉</button>
-            </div>
+<div class="modal-overlay" id="bagModal">
+    <div class="modal-content bag-content" id="bagContentArea">
+        <h3 style="margin:0 0 5px 0; color:#ff5722;">我的寶可夢背包</h3>
+        <div style="font-size:0.9em; color:#666; margin-bottom:10px;">總收服數: <span id="totalCaught">0</span></div>
+        
+        <div class="bag-tools">
+            <input type="text" id="bagSearch" class="bag-search" placeholder="搜尋寶可夢...">
+            <button class="btn-sort" id="btnSort">排序: 最新</button>
         </div>
+
+        <div id="pokedexGrid" class="pokedex-grid"></div>
+        <p id="emptyBagMsg" style="color:#888; display:none;">還沒抓到任何寶可夢。</p>
+        
+        <div class="pagination-controls" id="bagPagination" style="display:none;">
+            <button class="btn-page" id="btnPrevPage">❮</button>
+            <input type="number" id="pageInput" class="page-input" value="1" min="1">
+            <span id="totalPagesText">/ 1</span>
+            <button class="btn-page" id="btnNextPage">❯</button>
+        </div>
+
+        <button class="btn-photo" id="btnPhoto">📸 製作戰績卡</button>
+        <button class="btn-close" id="btnCloseBag">關閉</button>
     </div>
 </div>
 
 <script type="module">
-    // 引入需要的模組：Firebase App, Auth, Firestore
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"; // 👈 新增 Firestore 模組
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // ***************************************************************
-    // ⚠️ 請務必在此填入您的 FIREBASE CONFIG
+    // ⚠️ 請務必填入您的 CONFIG
     // ***************************************************************
     const firebaseConfig = {
 		apiKey: "AIzaSyDob5OyYtOjTXCK16iu741sn6KX-rNWa-Q",
@@ -343,18 +422,13 @@
 		measurementId: "G-NJ756ZPF8M"
     };
 
-    // 初始化 Firebase
-    let auth, db; // 宣告 db 變數
+    let auth, db, userRef;
     try {
         const app = initializeApp(firebaseConfig);
         auth = getAuth(app);
-        db = getFirestore(app); // 👈 初始化 Firestore
-        console.log("Firebase 連線成功，Firestore 啟用");
-    } catch (e) {
-        console.error("Firebase 初始化失敗:", e);
-    }
+        db = getFirestore(app);
+    } catch(e) { console.error(e); }
 
-    // DOM 元素
     const overlay = document.getElementById('loginOverlay');
     const gameWrapper = document.getElementById('gameWrapper');
     const btnGoogleLogin = document.getElementById('btnGoogleLogin');
@@ -362,118 +436,131 @@
     const userAvatar = document.getElementById('userAvatar');
     const userName = document.getElementById('userName');
 
-    // --- 登入按鈕事件 ---
     if (auth && db) {
         btnGoogleLogin.addEventListener('click', () => {
             const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider).catch((error) => {
-                console.error("登入錯誤:", error);
-                alert("登入失敗: " + error.message);
-            });
+            signInWithPopup(auth, provider).catch((error) => alert("登入失敗: " + error.message));
         });
 
-        // --- 登出按鈕事件 ---
         btnLogout.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                location.reload(); 
-            });
+            if(confirm("確定要登出嗎？")) signOut(auth).then(() => location.reload());
         });
 
-        // --- 核心：監聽登入狀態改變 ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // 1. 使用者已登入 Google，現在檢查資料庫審核狀態
-                try {
-                    const userRef = doc(db, "users", user.uid);
-                    const userSnap = await getDoc(userRef);
+                userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
 
-                    if (!userSnap.exists()) {
-                        // A. 新使用者：建立資料 (預設未審核)
-                        await setDoc(userRef, {
-                            name: user.displayName,
-                            email: user.email,
-                            photo: user.photoURL,
-                            isApproved: false, // 👈 核心：預設不通過
-                            role: "user",
-                            pokeBalls: 0,      // 初始遊戲數據
-                            createdAt: new Date().toISOString()
-                        });
+                if (!userSnap.exists()) {
+                    await setDoc(userRef, {
+                        name: user.displayName, email: user.email, photo: user.photoURL,
+                        isApproved: false, role: "user", pokeBalls: 0, pokemonBag: [], mistakes: [],
+                        createdAt: new Date().toISOString()
+                    });
+                    alert("註冊成功！等待管理員審核。");
+                    await signOut(auth);
+                } else {
+                    const data = userSnap.data();
+                    if (data.isApproved) {
+                        overlay.style.display = 'none';
+                        gameWrapper.style.display = 'flex';
+                        userName.textContent = data.name;
+                        userAvatar.src = data.photo;
                         
-                        alert("註冊成功！您的帳號需要管理員審核才能開始遊戲。");
-                        await signOut(auth); // 強制登出，不讓他進遊戲
-                        return;
-
+                        window.playerData.pokeBalls = data.pokeBalls || 0;
+                        window.playerData.pokemonBag = data.pokemonBag || [];
+                        window.playerData.mistakes = data.mistakes || [];
+                        window.updateUIFromCloud();
                     } else {
-                        // B. 舊使用者：檢查是否審核通過
-                        const userData = userSnap.data();
-                        
-                        if (userData.isApproved === true) {
-                            // 審核通過 -> 隱藏遮罩，顯示遊戲
-                            overlay.style.display = 'none';
-                            gameWrapper.style.display = 'flex';
-                            userName.textContent = userData.name;
-                            userAvatar.src = userData.photo;
-                            userAvatar.style.display = 'block';
-                            
-                            // 這裡可以載入您的遊戲存檔
-                            if (typeof pokeBalls !== 'undefined') {
-                                window.pokeBalls = userData.pokeBalls || 0;
-                                document.getElementById('ballCount').textContent = window.pokeBalls;
-                            }
-                            console.log("審核通過，進入遊戲");
-
-                        } else {
-                            // 審核未通過 -> 踢出
-                            alert("登入失敗：您的帳號尚未通過管理員審核。請耐心等候。");
-                            await signOut(auth);
-                        }
+                        alert("尚未通過審核。");
+                        await signOut(auth);
                     }
-
-                } catch (err) {
-                    console.error("資料庫讀取/寫入失敗:", err);
-                    alert("系統錯誤：無法處理使用者資料。");
                 }
             } else {
-                // 未登入狀態
                 overlay.style.display = 'flex';
                 gameWrapper.style.display = 'none';
-                userAvatar.style.display = 'none';
             }
         });
-    } else {
-        // 如果初始化失敗，至少讓 UI 顯示錯誤
-        if (btnGoogleLogin) {
-            btnGoogleLogin.addEventListener('click', () => {
-                alert("Firebase 初始化失敗，請檢查 Config 或網路連線。");
-            });
-        }
     }
+
+    window.saveCloudData = async (type, payload) => {
+        if (!userRef) return;
+        try {
+            if (type === 'ball_add' || type === 'ball_use') {
+                await updateDoc(userRef, { pokeBalls: window.playerData.pokeBalls });
+            } else if (type === 'catch_pokemon') {
+                await updateDoc(userRef, { 
+                    pokeBalls: window.playerData.pokeBalls,
+                    pokemonBag: arrayUnion(payload.pokemon),
+                    mistakes: arrayRemove(payload.word)
+                });
+            } else if (type === 'add_mistake') {
+                await updateDoc(userRef, { mistakes: arrayUnion(payload.word) });
+            }
+        } catch (e) { console.error("存檔失敗", e); }
+    };
 </script>
 
 <script>
-    // --- 遊戲邏輯 ---
     const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/karltpe/MikeEnglishTest/main/word_ad.json';
     const LEGENDARY_IDS = [144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 382, 383, 384, 483, 484, 487, 493];
     
-    function getRandomPokemonImage(isBoss) {
-        let id;
-        if (isBoss) {
-            id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
-        } else {
-            do { id = Math.floor(Math.random() * 800) + 1; } while (LEGENDARY_IDS.includes(id));
+    window.playerData = { pokeBalls: 0, pokemonBag: [], mistakes: [] };
+
+    // --- 背包分頁/搜尋/排序 ---
+    const ITEMS_PER_PAGE = 9;
+    let currentBagPage = 1;
+    let bagSortOrder = 'newest'; 
+    let bagSearchTerm = '';
+    
+    // 名稱快取
+    const pokemonNameCache = {};
+
+    // 獲取中文名 (異步)
+    async function fetchPokemonName(id) {
+        if (pokemonNameCache[id]) return pokemonNameCache[id];
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+            if(!res.ok) return "未知寶可夢";
+            const data = await res.json();
+            const nameObj = data.names.find(n => n.language.name === 'zh-Hant');
+            const name = nameObj ? nameObj.name : data.name;
+            pokemonNameCache[id] = name;
+            return name;
+        } catch(e) {
+            return "神秘怪獸";
         }
-        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
     }
 
-    let wordList = [], battleQueue = [], currentEnemy = null, currentEnemyImgUrl = '';
+    function getRandomPokemonId(isBoss) {
+        let id;
+        // 先嘗試找出背包裡沒有的 ID (但只有 30% 機率強迫出新的，增加重複機率)
+        const ownedIds = new Set(window.playerData.pokemonBag.map(p => p.speciesId));
+        
+        let foundNew = false;
+        // 降低「保證出新怪」的機率，符合 "盡量不要重複，但也開放重複" 的需求
+        // 只有 50% 機率會刻意去找新怪，另外 50% 完全隨機
+        if (Math.random() > 0.5) {
+            for(let i=0; i<20; i++) { 
+                if (isBoss) id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
+                else do { id = Math.floor(Math.random() * 800) + 1; } while (LEGENDARY_IDS.includes(id));
+                
+                if(!ownedIds.has(id)) { foundNew = true; break; }
+            }
+        }
+        
+        // 如果沒特別找，或是找不到，就隨機 (這樣就有機會重複)
+        if(!foundNew || !id) {
+             if (isBoss) id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
+             else do { id = Math.floor(Math.random() * 800) + 1; } while (LEGENDARY_IDS.includes(id));
+        }
+        
+        return id;
+    }
+
+    let wordList = [], battleQueue = [], currentEnemy = null, currentEnemyImgUrl = '', currentEnemyName = '', currentEnemyId = 0;
     let selectedLetters = new Set();
-    
-    let playerMaxHp = 3, playerHp = 3;
-    let pokeBalls = 0; 
-    let caughtPokemon = [];
-    
-    let stageCount = 0; 
-    let enemyMaxHp = 1, enemyCurrentHp = 1, isBossRound = false;
+    let playerMaxHp = 3, playerHp = 3, stageCount = 0, enemyMaxHp = 1, enemyCurrentHp = 1, isBossRound = false;
     let isFighting = false, isRevealed = false;
 
     const el = {
@@ -481,20 +568,27 @@
         enemyHpBar: document.getElementById('enemyHpBar'), enemyHpText: document.getElementById('enemyHpText'), enemyName: document.getElementById('enemyName'),
         playerHpBar: document.getElementById('playerHpBar'), playerHpText: document.getElementById('playerHpText'),
         enemyImg: document.getElementById('enemyImg'), playerImg: document.getElementById('playerImg'),
-        questionBox: document.getElementById('questionBox'),
-        qText: document.getElementById('qText'), qHint: document.getElementById('qHint'),
+        questionBox: document.getElementById('questionBox'), qText: document.getElementById('qText'), qHint: document.getElementById('qHint'),
         input: document.getElementById('userInput'),
         btnAction: document.getElementById('btnAction'), btnRun: document.getElementById('btnRun'),
         btnVoiceWord: document.getElementById('btnVoiceWord'), btnVoiceSent: document.getElementById('btnVoiceSent'),
         msgBox: document.getElementById('msgBox'), scene: document.getElementById('battleScene'),
-        gameFrame: document.getElementById('gameFrame'),
-        rateSlider: document.getElementById('rateSlider'), ballCount: document.getElementById('ballCount'), stageInfo: document.getElementById('stageInfo'),
+        gameFrame: document.getElementById('gameFrame'), ballCount: document.getElementById('ballCount'),
         btnShop: document.getElementById('btnShop'), shopModal: document.getElementById('shopModal'),
         btnBuyPotion: document.getElementById('btnBuyPotion'), btnCloseShop: document.getElementById('btnCloseShop'),
         btnBag: document.getElementById('btnBag'), bagModal: document.getElementById('bagModal'),
         pokedexGrid: document.getElementById('pokedexGrid'), emptyBagMsg: document.getElementById('emptyBagMsg'),
         btnPhoto: document.getElementById('btnPhoto'), btnCloseBag: document.getElementById('btnCloseBag'),
-        bagContentArea: document.getElementById('bagContentArea')
+        bagContentArea: document.getElementById('bagContentArea'),
+        // 背包控制
+        bagPagination: document.getElementById('bagPagination'),
+        btnPrevPage: document.getElementById('btnPrevPage'),
+        btnNextPage: document.getElementById('btnNextPage'),
+        pageInput: document.getElementById('pageInput'),
+        totalPagesText: document.getElementById('totalPagesText'),
+        totalCaught: document.getElementById('totalCaught'),
+        bagSearch: document.getElementById('bagSearch'),
+        btnSort: document.getElementById('btnSort')
     };
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -506,10 +600,7 @@
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
         gain.gain.setValueAtTime(vol, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
     const SFX = {
         attack: () => { playTone(600, 'sawtooth', 0.1); setTimeout(() => playTone(300, 'square', 0.1), 100); },
@@ -525,37 +616,45 @@
         btn: () => { playTone(400, 'sine', 0.1, 0.05); }
     };
 
+    window.updateUIFromCloud = () => {
+        el.ballCount.textContent = window.playerData.pokeBalls;
+        const mistakeSet = new Set(window.playerData.mistakes.map(m => m.charAt(0).toUpperCase()));
+        document.querySelectorAll('.lvl-btn').forEach(btn => {
+            if (mistakeSet.has(btn.textContent)) btn.classList.add('has-review');
+            else btn.classList.remove('has-review');
+        });
+    };
+
     window.onload = async () => {
         const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         abc.forEach(char => {
             const b = document.createElement('div');
-            b.className = 'lvl-btn';
-            b.textContent = char;
+            b.className = 'lvl-btn'; b.textContent = char;
             b.onclick = () => { SFX.btn(); toggleLevel(char, b); };
             el.levelGrid.appendChild(b);
         });
 
         try {
-            el.msgBox.textContent = "正在下載單字圖鑑...";
+            el.msgBox.textContent = "正在下載圖鑑...";
             const res = await fetch(GITHUB_JSON_URL + '?t=' + Date.now());
             if(!res.ok) throw new Error("連線失敗");
             wordList = await res.json();
-            el.msgBox.textContent = `✅ 準備完成！共 ${wordList.length} 個單字。請選關卡。`;
+            el.msgBox.textContent = `✅ 共 ${wordList.length} 個單字。請選關卡。`;
             el.msgBox.style.color = "green";
         } catch(e) {
-            el.msgBox.textContent = "❌ 載入失敗，請檢查網路。";
-            el.msgBox.style.color = "red";
+            el.msgBox.textContent = "❌ 載入失敗"; el.msgBox.style.color = "red";
         }
     };
 
     el.btnShop.onclick = () => { SFX.btn(); el.shopModal.style.display = 'flex'; updateShopUI(); };
     el.btnCloseShop.onclick = () => { SFX.btn(); el.shopModal.style.display = 'none'; };
-    el.btnBag.onclick = () => { SFX.btn(); el.bagModal.style.display = 'flex'; renderBag(); };
+    el.btnBag.onclick = () => { SFX.btn(); currentBagPage = 1; bagSearchTerm = ''; el.bagSearch.value = ''; el.bagModal.style.display = 'flex'; renderBag(); };
     el.btnCloseBag.onclick = () => { SFX.btn(); el.bagModal.style.display = 'none'; };
 
     el.btnBuyPotion.onclick = () => {
-        if (pokeBalls >= 3 && playerHp < playerMaxHp) {
-            pokeBalls -= 3; playerHp++; SFX.heal(); updateStats(); updateShopUI();
+        if (window.playerData.pokeBalls >= 3 && playerHp < playerMaxHp) {
+            window.playerData.pokeBalls -= 3; playerHp++; SFX.heal(); updateStats(); updateShopUI();
+            if(window.saveCloudData) window.saveCloudData('ball_use');
             el.msgBox.textContent = "💖 體力恢復！"; el.msgBox.style.color = "#e91e63";
         } else if (playerHp >= playerMaxHp) { alert("體力已經滿了！"); } 
         else { alert("精靈球不夠喔！"); }
@@ -563,30 +662,118 @@
 
     function updateShopUI() {
         el.btnBuyPotion.textContent = (playerHp >= playerMaxHp) ? "體力已滿" : "購買 (3球)";
-        el.btnBuyPotion.disabled = (playerHp >= playerMaxHp || pokeBalls < 3);
+        el.btnBuyPotion.disabled = (playerHp >= playerMaxHp || window.playerData.pokeBalls < 3);
     }
 
+    // --- 背包核心邏輯 (堆疊顯示 + 數量) ---
     function renderBag() {
-        el.pokedexGrid.innerHTML = '';
-        if (caughtPokemon.length === 0) {
-            el.emptyBagMsg.style.display = 'block'; el.btnPhoto.style.display = 'none';
+        // 1. 整理資料：將相同的 speciesId 合併，計算數量
+        // map 結構: speciesId -> { count: 0, word: "latest_word", img: "url", name: "name", speciesId: id, level: lvl }
+        const groupedMap = new Map();
+        
+        window.playerData.pokemonBag.forEach(p => {
+            if (!groupedMap.has(p.speciesId)) {
+                groupedMap.set(p.speciesId, { ...p, count: 0 });
+            }
+            const item = groupedMap.get(p.speciesId);
+            item.count++;
+            // 隨時更新為最新抓到的資訊 (例如等級可能不同)
+            if (p.level > item.level) item.level = p.level; 
+        });
+        
+        let bag = Array.from(groupedMap.values());
+        
+        // 2. 搜尋過濾
+        if (bagSearchTerm) {
+            bag = bag.filter(p => (p.name && p.name.includes(bagSearchTerm)) || p.word.toLowerCase().includes(bagSearchTerm.toLowerCase()));
+        }
+
+        // 3. 排序
+        if (bagSortOrder === 'newest') {
+            bag.reverse(); 
         } else {
-            el.emptyBagMsg.style.display = 'none'; el.btnPhoto.style.display = 'block';
-            caughtPokemon.forEach(p => {
+            bag.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        }
+
+        // 更新總收集數 (顯示不重複的種類數還是總隻數？這裡顯示總隻數比較有成就感)
+        el.totalCaught.textContent = window.playerData.pokemonBag.length; 
+        el.pokedexGrid.innerHTML = '';
+        
+        if (bag.length === 0) {
+            el.emptyBagMsg.style.display = 'block';
+            el.btnPhoto.style.display = 'none';
+            el.bagPagination.style.display = 'none';
+            el.emptyBagMsg.textContent = bagSearchTerm ? "找不到符合的寶可夢。" : "目前還是空的。";
+        } else {
+            el.emptyBagMsg.style.display = 'none';
+            el.btnPhoto.style.display = 'block';
+            el.bagPagination.style.display = 'flex';
+
+            const totalPages = Math.ceil(bag.length / ITEMS_PER_PAGE);
+            if (currentBagPage > totalPages) currentBagPage = totalPages;
+            if (currentBagPage < 1) currentBagPage = 1;
+
+            el.pageInput.value = currentBagPage;
+            el.pageInput.max = totalPages;
+            el.totalPagesText.textContent = `/ ${totalPages}`;
+            
+            el.btnPrevPage.disabled = (currentBagPage === 1);
+            el.btnNextPage.disabled = (currentBagPage === totalPages);
+
+            const start = (currentBagPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageItems = bag.slice(start, end);
+
+            pageItems.forEach(p => {
                 const card = document.createElement('div'); card.className = 'poke-card';
-                card.innerHTML = `<img src="${p.img}"><div class="poke-name">${p.word}</div>`;
+                const pokeLabel = p.name ? `<div style="font-size:0.75em; color:#e91e63; font-weight:bold;">${p.name}</div>` : '';
+                // 數量標記：只有數量 > 1 才顯示
+                const countBadge = p.count > 1 ? `<div class="count-badge">x${p.count}</div>` : '';
+                const levelBadge = `<div class="level-badge">Lv.${p.level}</div>`;
+                
+                card.innerHTML = `
+                    ${countBadge}
+                    ${levelBadge}
+                    <img src="${p.img}">
+                    ${pokeLabel}
+                    <div class="poke-word">${p.word}</div>
+                `;
                 el.pokedexGrid.appendChild(card);
             });
         }
     }
 
+    el.bagSearch.addEventListener('input', (e) => {
+        bagSearchTerm = e.target.value;
+        currentBagPage = 1;
+        renderBag();
+    });
+
+    el.btnSort.onclick = () => {
+        bagSortOrder = (bagSortOrder === 'newest') ? 'az' : 'newest';
+        el.btnSort.textContent = (bagSortOrder === 'newest') ? "排序: 最新" : "排序: 名稱";
+        currentBagPage = 1;
+        renderBag();
+    };
+
+    el.btnPrevPage.onclick = () => { if(currentBagPage > 1) { currentBagPage--; renderBag(); SFX.btn(); }};
+    el.btnNextPage.onclick = () => { 
+        // 重新計算總頁數 (因為有過濾)
+        // ... (簡化邏輯，直接重繪比較快) ...
+        currentBagPage++; renderBag(); SFX.btn(); 
+    };
+    el.pageInput.onchange = () => { 
+        let p = parseInt(el.pageInput.value);
+        if(p >= 1) { currentBagPage = p; renderBag(); }
+    };
+
     el.btnPhoto.onclick = () => {
-        SFX.camera(); el.btnPhoto.textContent = "📷 產生中...";
-        el.btnPhoto.style.visibility = 'hidden'; el.btnCloseBag.style.visibility = 'hidden';
+        SFX.camera(); el.btnPhoto.textContent = "📷 處理中...";
+        el.btnPhoto.style.visibility = 'hidden'; el.btnCloseBag.style.visibility = 'hidden'; el.bagPagination.style.visibility = 'hidden';
         html2canvas(el.bagContentArea, { useCORS: true, scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-            el.btnPhoto.style.visibility = 'visible'; el.btnCloseBag.style.visibility = 'visible';
-            el.btnPhoto.textContent = "📸 合影留念 (下載圖片)";
-            const link = document.createElement('a'); link.download = 'my-pokemon-collection.png';
+            el.btnPhoto.style.visibility = 'visible'; el.btnCloseBag.style.visibility = 'visible'; el.bagPagination.style.visibility = 'visible';
+            el.btnPhoto.textContent = "📸 合影留念";
+            const link = document.createElement('a'); link.download = 'my-pokedex.png';
             link.href = canvas.toDataURL(); link.click();
         });
     };
@@ -599,8 +786,8 @@
         if(selectedLetters.has(char)) { selectedLetters.delete(char); btn.classList.remove('active'); } 
         else { selectedLetters.add(char); btn.classList.add('active'); }
         if(selectedLetters.size > 0) {
-            el.btnAction.textContent = "開始戰鬥"; el.btnAction.disabled = false; el.btnAction.style.background = "#28a745";
-            el.msgBox.textContent = `已選擇 ${Array.from(selectedLetters).join(',')}，按開始！`;
+            el.btnAction.textContent = "開始"; el.btnAction.disabled = false; el.btnAction.style.background = "#28a745";
+            el.msgBox.textContent = `已選 ${Array.from(selectedLetters).join(',')}，按開始！`;
         } else {
             el.btnAction.textContent = "請選關卡"; el.btnAction.disabled = true; el.btnAction.style.background = "#ccc";
         }
@@ -619,7 +806,10 @@
     el.btnRun.onclick = () => {
         if(!isFighting) return;
         SFX.error(); el.msgBox.textContent = "💨 逃跑成功 (跳過)"; el.msgBox.style.color = "orange";
-        showDamage(0, true); revealAnswer(false);
+        showDamage(0, true); 
+        if(window.saveCloudData) window.saveCloudData('add_mistake', { word: currentEnemy.word });
+        if(!window.playerData.mistakes.includes(currentEnemy.word)) window.playerData.mistakes.push(currentEnemy.word);
+        revealAnswer(false);
     };
 
     el.input.addEventListener('keyup', (e) => {
@@ -630,30 +820,43 @@
     function initBattle() {
         const pool = wordList.filter(w => selectedLetters.has(w.word.charAt(0).toUpperCase()));
         if(pool.length === 0) { el.msgBox.textContent = "此關卡沒有怪獸！"; return; }
-        SFX.start(); battleQueue = shuffle(pool); playerHp = playerMaxHp; stageCount = 0; updateStats();
+        
+        const mistakeSet = new Set(window.playerData.mistakes);
+        const reviewWords = pool.filter(w => mistakeSet.has(w.word)); 
+        const newWords = pool.filter(w => !mistakeSet.has(w.word));   
+        battleQueue = [...shuffle(reviewWords), ...shuffle(newWords)];
+        
+        SFX.start(); playerHp = playerMaxHp; stageCount = 0; updateStats();
         el.btnAction.style.background = "#ff3333"; nextEnemy();
     }
 
-    function nextEnemy() {
+    async function nextEnemy() {
         if(playerHp <= 0) { gameOver(false); return; }
         if(battleQueue.length === 0) { gameOver(true); return; }
 
-        stageCount++; el.stageInfo.textContent = `關卡 ${stageCount}`;
+        stageCount++; 
         isBossRound = (stageCount % 5 === 0);
+        
+        // 產生 ID 與圖片
+        currentEnemyId = getRandomPokemonId(isBossRound);
+        currentEnemyImgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${currentEnemyId}.png`;
+        
+        // 抓名字
+        el.enemyName.textContent = "讀取中...";
+        currentEnemyName = await fetchPokemonName(currentEnemyId);
+        el.enemyName.textContent = isBossRound ? `(魔王) ${currentEnemyName}` : `野生 ${currentEnemyName}`;
 
         if (isBossRound) {
             enemyMaxHp = Math.floor(Math.random() * 3) + 8; enemyCurrentHp = enemyMaxHp;
-            currentEnemyImgUrl = getRandomPokemonImage(true);
             el.scene.classList.add('boss-bg'); el.enemyImg.classList.add('boss-size');
             el.gameFrame.classList.add('boss-mode'); el.enemyHpBar.classList.add('hp-purple');
-            el.enemyName.textContent = "傳說寶可夢 (魔王)"; SFX.bossStart();
-            el.msgBox.textContent = "⚠️ 警告！傳說中的寶可夢出現了！"; el.msgBox.style.color = "#9c27b0";
+            SFX.bossStart();
+            el.msgBox.textContent = "⚠️ 警告！魔王出現！"; el.msgBox.style.color = "#9c27b0";
         } else {
             enemyMaxHp = 1; enemyCurrentHp = 1;
-            currentEnemyImgUrl = getRandomPokemonImage(false);
             el.scene.classList.remove('boss-bg'); el.enemyImg.classList.remove('boss-size');
             el.gameFrame.classList.remove('boss-mode'); el.enemyHpBar.classList.remove('hp-purple');
-            el.enemyName.textContent = "野生寶可夢"; el.msgBox.textContent = "野生寶可夢出現了！"; el.msgBox.style.color = "#333";
+            el.msgBox.textContent = `遭遇 ${currentEnemyName}！`; el.msgBox.style.color = "#333";
         }
 
         updateStats(); el.enemyImg.style.backgroundImage = `url('${currentEnemyImgUrl}')`;
@@ -700,12 +903,33 @@
                 setTimeout(() => { if (enemyCurrentHp > 0) el.enemyImg.style.filter = "none"; }, 300);
 
                 if (enemyCurrentHp <= 0) {
-                    enemyCurrentHp = 0; pokeBalls++;
-                    caughtPokemon.push({ word: currentEnemy.word, img: currentEnemyImgUrl }); SFX.coin();
-                    el.msgBox.textContent = isBossRound ? "✨ 傳說寶可夢收服成功！" : "💥 成功收服！";
+                    enemyCurrentHp = 0; 
+                    window.playerData.pokeBalls++;
+                    
+                    // 建立新的 RPG 寶可夢物件
+                    const newPokemon = {
+                        instanceId: Date.now() + Math.random().toString(36).substr(2, 9),
+                        speciesId: currentEnemyId,
+                        img: currentEnemyImgUrl,
+                        name: currentEnemyName,
+                        level: 1, // 預設等級
+                        exp: 0,
+                        word: currentEnemy.word,
+                        caughtDate: new Date().toISOString()
+                    };
+                    
+                    window.playerData.pokemonBag.push(newPokemon);
+                    
+                    const mIdx = window.playerData.mistakes.indexOf(currentEnemy.word);
+                    if(mIdx > -1) window.playerData.mistakes.splice(mIdx, 1);
+
+                    if(window.saveCloudData) window.saveCloudData('catch_pokemon', { pokemon: newPokemon, word: currentEnemy.word });
+
+                    SFX.coin();
+                    el.msgBox.textContent = isBossRound ? "✨ 魔王收服成功！" : "💥 成功收服！";
                     el.msgBox.style.color = "green"; el.enemyImg.style.filter = "brightness(0) opacity(0.5)";
                 } else {
-                    el.msgBox.textContent = `⚔️ 攻擊命中！魔王還剩 ${enemyCurrentHp} 點血！`; el.msgBox.style.color = "blue";
+                    el.msgBox.textContent = `⚔️ 攻擊命中！魔王剩 ${enemyCurrentHp} 血！`; el.msgBox.style.color = "blue";
                 }
                 updateStats(); revealAnswer(true);
             }, 200);
@@ -714,6 +938,9 @@
             SFX.error(); playerHp--; updateStats();
             el.playerImg.classList.add('shake'); setTimeout(() => el.playerImg.classList.remove('shake'), 500);
             showDamage(1, true);
+            if(!window.playerData.mistakes.includes(currentEnemy.word)) window.playerData.mistakes.push(currentEnemy.word);
+            if(window.saveCloudData) window.saveCloudData('add_mistake', { word: currentEnemy.word });
+
             if(playerHp <= 0) { setTimeout(() => gameOver(false), 1000); } 
             else { el.msgBox.textContent = "❌ 攻擊失誤！受到反擊！"; el.msgBox.style.color = "red"; el.input.value = ""; el.input.focus(); }
         }
@@ -722,8 +949,8 @@
     function revealAnswer(isWin) {
         isFighting = false; isRevealed = true;
         el.input.disabled = true; el.btnRun.disabled = true;
-        if (enemyCurrentHp > 0) el.btnAction.textContent = "下一題 (繼續戰鬥)";
-        else el.btnAction.textContent = "下一隻怪獸";
+        if (enemyCurrentHp > 0) el.btnAction.textContent = "下一題 (戰鬥)";
+        else el.btnAction.textContent = "下一隻";
         el.btnAction.style.background = "#2196f3";
         el.qText.innerHTML = `<span style="color:red; font-size:1.2em;">${currentEnemy.word}</span> <span style="font-size:0.6em; color:#666;">${currentEnemy.KK||''}</span>`;
         if(currentEnemy.sentence) el.qHint.textContent = currentEnemy.sentence;
@@ -732,8 +959,8 @@
     function showDamage(amount, isPlayerHurt) {
         const dmg = document.createElement('div'); dmg.className = 'damage-text';
         dmg.textContent = `-${amount}`; dmg.style.color = isPlayerHurt ? 'red' : 'orange';
-        if(isPlayerHurt) { dmg.style.left = "60px"; dmg.style.bottom = "100px"; } 
-        else { dmg.style.right = "60px"; dmg.style.top = "50px"; }
+        if(isPlayerHurt) { dmg.style.left = "40px"; dmg.style.top = "60px"; } 
+        else { dmg.style.right = "40px"; dmg.style.bottom = "80px"; }
         el.scene.appendChild(dmg); setTimeout(() => dmg.remove(), 800);
     }
 
@@ -743,7 +970,7 @@
         const pPct = (playerHp / playerMaxHp) * 100;
         el.playerHpBar.style.width = pPct + "%"; el.playerHpText.textContent = `${playerHp}/${playerMaxHp}`;
         el.playerHpBar.className = "hp-bar-fill " + (pPct > 50 ? "hp-green" : pPct > 20 ? "hp-yellow" : "hp-red");
-        el.ballCount.textContent = pokeBalls;
+        el.ballCount.textContent = window.playerData.pokeBalls;
     }
 
     function gameOver(isClear) {
@@ -769,6 +996,7 @@
         el.questionBox.innerHTML = `<div id="qText" class="q-word">請先選擇上方關卡</div><div id="qHint" class="q-hint"></div>`;
         el.qText = document.getElementById('qText'); el.qHint = document.getElementById('qHint');
         enemyHp = 100; playerHp = 3; updateStats();
+        window.updateUIFromCloud();
     }
 
     function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
@@ -778,7 +1006,7 @@
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
             u.lang = 'en-US';
-            u.rate = parseFloat(el.rateSlider.value);
+            u.rate = 1.0; 
             window.speechSynthesis.speak(u);
         }
     }
