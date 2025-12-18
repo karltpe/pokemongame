@@ -1,12 +1,11 @@
 // src/App.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, initializeFirestore } from 'firebase/firestore';
 import './App.css';
-import bagImg from './assets/my-bag.png'
-import shopImg from './assets/my-shop.png'
+import bagImg from './assets/my-bag.png';
+import shopImg from './assets/my-shop.png';
+import { useAuth } from './contexts/AuthContext.jsx';
+import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 // --- 1. Firebase 設定與初始化 ---
 const firebaseConfig = {
@@ -36,11 +35,7 @@ const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/188/188987.png";
 function App() {
   const initialized = useRef(false);
   
-  // React State: 專門負責 UI 顯示 (名字、頭貼、Loading 狀態)
-  const [playerData, setPlayerData] = useState(null);
-  
-  // 用來判斷是否正在載入資料 (避免畫面閃爍)
-  const [loading, setLoading] = useState(true);
+  const { playerData, loading, loginWithGoogle, logout } = useAuth();
 
   useEffect(() => {
     // 防止 React Strict Mode 執行兩次
@@ -552,6 +547,8 @@ function App() {
             }, 2500);
         }
     }
+    // 讓外部（AuthContext）可以觸發
+    window.triggerSplashScreen = triggerSplashScreen;
 
     // 事件監聽 (初始化關卡按鈕)
     if (el.levelGrid) {
@@ -644,85 +641,7 @@ function App() {
     if(el.btnVoiceSent) el.btnVoiceSent.onclick = () => { if(currentEnemy && currentEnemy.sentence) speak(currentEnemy.sentence); };
 
     // --- Firebase Auth & Logic ---
-    if (auth && db) {
-        if(el.btnGoogleLogin) {
-            el.btnGoogleLogin.onclick = () => {
-                const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).catch((error) => alert("登入失敗: " + error.message));
-            };
-        }
-
-        if(el.btnLogout) {
-            el.btnLogout.onclick = () => {
-                if(confirm("確定要登出嗎？")) signOut(auth).then(() => window.location.reload());
-            };
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            setLoading(false); // 停止載入狀態
-            if (user) {
-                console.log("【1】登入成功:", user.uid);
-                if(el.loginOverlay) el.loginOverlay.style.display = 'none';
-        
-                try {
-                    userRef = doc(db, "users", user.uid);
-                    console.log("【2】讀取 Firestore 資料...");
-                    
-                    const userSnap = await getDoc(userRef); 
-
-                    if (!userSnap.exists()) {
-                        console.log("【3-A】新使用者，建立資料...");
-                        const newUserData = {
-                            name: user.displayName || "訓練家",
-                            email: user.email,
-                            photo: user.photoURL,
-                            isApproved: false,
-                            role: "user",
-                            ...defaultGameData, // 使用預設遊戲資料
-                            createdAt: new Date().toISOString()
-                        };
-        
-                        await setDoc(userRef, newUserData);
-                        alert("註冊成功！請等待審核。");
-                        await signOut(auth);
-                        window.location.reload();
-        
-                    } else {
-                        const data = userSnap.data();
-                        console.log("【3-B】舊使用者，資料:", data);
-
-                        if (data.isApproved) {
-                            // ★ 修復重點 1：更新 React 狀態 (控制 Splash 與 TopBar)
-                            setPlayerData(data);
-                            
-                            // ★ 修復重點 2：資料合併 (Data Merging)
-                            // 確保即使資料庫少了欄位，也會使用預設值，不會崩潰
-                            window.playerData = { ...defaultGameData, ...data };
-                            
-                            // ★ 修復重點 3：安全呼叫 UI 更新
-                            window.updateUIFromCloud();
-
-                            triggerSplashScreen();
-
-                        } else {
-                            alert("審核未通過");
-                            await signOut(auth);
-                            window.location.reload();
-                        }
-                    }
-                } catch (error) {
-                    console.error("【錯誤】資料讀取失敗:", error);
-                    alert("連線失敗，請檢查網路。");
-                    if(el.loginOverlay) el.loginOverlay.style.display = 'flex';
-                }
-            } else {
-                console.log("【0】未登入");
-                setPlayerData(null); 
-                window.playerData = { ...defaultGameData };
-                if(el.loginOverlay) el.loginOverlay.style.display = 'flex';
-            }
-        });
-    }
+    
 
   }, []); // End of useEffect
 
@@ -735,7 +654,7 @@ function App() {
             <div className="login-card">
                 <div style={{fontSize: '3em', marginBottom: '10px'}}>⚡</div>
                 <h2 style={{margin: '0 0 20px 0', color: '#2a75bb'}}>寶可夢單字大冒險</h2>
-                <button id="btnGoogleLogin" className="btn-google-login">
+                <button id="btnGoogleLogin" className="btn-google-login" onClick={loginWithGoogle} >
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="24" height="24" alt="Google" />
                     Google 登入
                 </button>
@@ -832,7 +751,7 @@ function App() {
                     </button>
                     
                     {/* 登出按鈕 - 加大並換成門的圖案 */}
-                    <button id="btnLogout" title="登出" style={{
+                    <button id="btnLogout" title="登出" onClick={logout} style={{
                         background: 'none',
                         border: 'none', 
                         cursor: 'pointer',
