@@ -5,6 +5,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, initializeFirestore } from 'firebase/firestore';
 import './App.css';
+import bagImg from './assets/my-bag.png'
+import shopImg from './assets/my-shop.png'
 
 // --- 1. Firebase 設定與初始化 ---
 const firebaseConfig = {
@@ -762,28 +764,90 @@ function App() {
         {/* Game Wrapper */}
         <div id="gameWrapper" style={{display: 'none'}}>
             <div className="game-frame" id="gameFrame">
-                <div className="top-bar">
-                    <div className="user-profile">
-                        <img 
-                            id="userAvatar" 
-                            className="user-avatar" 
-                            src={playerData?.photo || DEFAULT_AVATAR} 
-                            alt="Avatar" 
-                        />
-                        <span id="userNameDisplay" style={{maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+            <div className="top-bar">
+                <div className="user-profile">
+                    <img 
+                        id="userAvatar" 
+                        className="user-avatar" 
+                        src={playerData?.photo || DEFAULT_AVATAR} 
+                        alt="Avatar" 
+                    />
+                    <div style={{display: 'flex', flexDirection: 'column', lineHeight: '1.2'}}>
+                        <span id="userNameDisplay" style={{maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 'bold', fontSize: '0.9rem'}}>
                             {playerData?.name || '訓練家'}
                         </span>
-                        <button id="btnLogout" style={{background:'none', border:'none', fontSize:'1.2em', cursor:'pointer'}}>🚪</button>
-                    </div>
-                    <div className="currency-box">
-                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" className="ball-icon" alt="Ball" />
-                        x <span id="ballCount">0</span>
-                    </div>
-                    <div className="menu-btns">
-                        <button className="btn-top btn-bag" id="btnBag">🎒</button>
-                        <button className="btn-top btn-shop" id="btnShop">🛒</button>
+                        {/* 這裡可以放等級或稱號 */}
                     </div>
                 </div>
+
+                <div className="right-controls" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    {/* 金幣區 (維持原樣，微調高度配合) */}
+                    <div className="currency-box" style={{
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        background: '#FFF8E1', 
+                        padding: '0 12px', 
+                        borderRadius: '25px', 
+                        border: '2px solid #FFC107',
+                        boxShadow: '0 3px 0 #FFA000',
+                        height: '48px', // 加高一點
+                        marginRight: '5px'
+                    }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="#FFD700" stroke="#F57F17" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}>
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+                            <path d="M12 18V6" />
+                        </svg>
+                        <span id="ballCount" style={{fontWeight: '900', color: '#EF6C00', fontSize: '1.4rem'}}>9</span>
+                    </div>
+
+                    {/* 商店按鈕 - 改用像素圖片 */}
+                    <button className="btn-icon" id="btnShop" title="商店" style={{
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        padding: '0',
+                        transition: 'transform 0.1s'
+                    }}>
+                        <img 
+                            src={shopImg}
+                            alt="商店" 
+                            style={{width: '56px', height: '56px', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,0.2))'}} 
+                        />
+                    </button>
+
+                    {/* 背包按鈕 - 改用像素圖片 */}
+                    <button className="btn-icon" id="btnBag" title="背包" style={{
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        padding: '0',
+                        transition: 'transform 0.1s'
+                    }}>
+                        <img 
+                            src={bagImg}
+                            alt="背包" 
+                            style={{width: '56px', height: '56px', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,0.2))'}} 
+                        />
+                    </button>
+                    
+                    {/* 登出按鈕 - 加大並換成門的圖案 */}
+                    <button id="btnLogout" title="登出" style={{
+                        background: 'none',
+                        border: 'none', 
+                        cursor: 'pointer',
+                        marginLeft: '5px',
+                        padding: '0',
+                        opacity: '0.8'
+                    }}>
+                        <img 
+                            src="https://cdn-icons-png.flaticon.com/128/3580/3580175.png" 
+                            alt="登出" 
+                            style={{width: '45px', height: '45px'}} 
+                        />
+                    </button>
+                </div>
+            </div>
 
                 <div className="level-grid" id="levelGrid"></div>
 
