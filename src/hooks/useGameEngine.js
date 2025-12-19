@@ -1,6 +1,15 @@
 // src/hooks/useGameEngine.js
 import { useEffect, useRef } from 'react';
 import { updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { 
+    POKEMON_GENERATIONS, 
+    getGenerationRange, 
+    getLegendaryIdsByGeneration,
+    getCumulativeGenerationRange,
+    getCumulativeLegendaryIds,
+    isPokemonInGeneration,
+    CURRENT_GENERATION as GEN_CONFIG
+} from '../utils/pokemonGenerations';
 
 export default function useGameEngine() {
     const initialized = useRef(false);
@@ -11,6 +20,12 @@ export default function useGameEngine() {
         initialized.current = true;
 
         // --- 遊戲引擎邏輯 (Legacy Logic) ---
+        
+        // ★ 新增：世代控管設定（從 pokemonGenerations.js 讀取配置）
+        // 注意：CURRENT_GENERATION = 5 表示開放第 1-5 代的所有寶可夢（累積）
+        const CURRENT_GENERATION = GEN_CONFIG;
+        const genRange = getCumulativeGenerationRange(CURRENT_GENERATION); // 從第 1 代到當前世代
+        const LEGENDARY_IDS = getCumulativeLegendaryIds(CURRENT_GENERATION); // 從第 1 代到當前世代的所有神獸
         
         // 定義全域變數預設值
         const defaultGameData = { 
@@ -24,12 +39,12 @@ export default function useGameEngine() {
         window.playerData = { ...defaultGameData };
         
         const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/karltpe/MikeEnglishTest/main/word_ad.json';
-        const LEGENDARY_IDS = [144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 382, 383, 384, 483, 484, 487, 493];
         const getMaxExp = (lvl) => lvl * 100;
 
         // 遊戲內部變數
         let wordList = [], battleQueue = [], currentEnemy = null;
         let currentEnemyImgUrl = '', currentEnemyName = '', currentEnemyId = 0;
+        let currentEnemyTypes = []; // ★ 新增：當前敵人的屬性
         // 創建 selectedLetters，並暴露到 window 供 React 使用
         let selectedLetters = new Set();
         let playerMaxHp = 3, playerHp = 3, stageCount = 0;
@@ -130,6 +145,8 @@ export default function useGameEngine() {
 
         // 輔助函式
         const pokemonNameCache = {};
+        const pokemonDataCache = {}; // ★ 新增：快取完整的寶可夢資料（包含屬性）
+        
         async function fetchPokemonName(id) {
             if (pokemonNameCache[id]) return pokemonNameCache[id];
             try {
@@ -142,6 +159,39 @@ export default function useGameEngine() {
                 return name;
             } catch(e) { return "神秘怪獸"; }
         }
+        
+        // ★ 新增：獲取寶可夢的完整資料（包含屬性）
+        async function fetchPokemonData(id) {
+            if (pokemonDataCache[id]) return pokemonDataCache[id];
+            try {
+                const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+                if(!res.ok) return null;
+                const data = await res.json();
+                
+                // 提取屬性
+                const types = data.types.map(t => t.type.name);
+                
+                // 提取能力值
+                const stats = {};
+                data.stats.forEach(stat => {
+                    stats[stat.stat.name] = stat.base_stat;
+                });
+                
+                const pokemonData = {
+                    id: data.id,
+                    types: types,
+                    stats: stats,
+                    height: data.height,
+                    weight: data.weight,
+                };
+                
+                pokemonDataCache[id] = pokemonData;
+                return pokemonData;
+            } catch(e) { 
+                console.warn('獲取寶可夢資料失敗:', e);
+                return null; 
+            }
+        }
 
         function getRandomPokemonId(isBoss) {
             let id;
@@ -149,13 +199,32 @@ export default function useGameEngine() {
             const bag = window.playerData.pokemonBag || [];
             const ownedIds = new Set(bag.map(p => p.speciesId));
             
+            // ★ 修正：世代限制 - 允許從第 1 代到當前世代的所有 ID 範圍（累積）
+            const minId = genRange.minId; // 第 1 代的最小 ID (1)
+            const maxId = genRange.maxId; // 當前世代的最大 ID
+            
             let foundNew = false;
             for(let i=0; i<15; i++) { 
-                if (isBoss) id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
-                else do { id = Math.floor(Math.random() * 800) + 1; } while (LEGENDARY_IDS.includes(id));
+                if (isBoss) {
+                    // 魔王：從第 1 代到當前世代的所有神獸中隨機選擇
+                    if (LEGENDARY_IDS.length > 0) {
+                        id = LEGENDARY_IDS[Math.floor(Math.random() * LEGENDARY_IDS.length)];
+                    } else {
+                        // 如果沒有神獸，從累積範圍內隨機選擇
+                        id = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+                    }
+                } else {
+                    // 一般敵人：從第 1 代到當前世代的累積範圍內隨機選擇，排除神獸
+                    do { 
+                        id = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+                    } while (LEGENDARY_IDS.includes(id));
+                }
                 if(!ownedIds.has(id)) { foundNew = true; break; }
             }
-            if(!foundNew || !id) id = Math.floor(Math.random() * 800) + 1;
+            // 如果找不到新的，從累積範圍內隨機選擇一個
+            if(!foundNew || !id) {
+                id = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+            }
             return id;
         }
 
@@ -295,6 +364,11 @@ export default function useGameEngine() {
             // ★ 清理：移除備份的 DOM 更新，React 組件（BattleScene）已處理
             currentEnemyName = await fetchPokemonName(currentEnemyId);
             const displayName = isBossRound ? `(魔王) ${currentEnemyName}` : `野生 ${currentEnemyName}`;
+            
+            // ★ 新增：獲取寶可夢屬性資訊
+            const pokemonData = await fetchPokemonData(currentEnemyId);
+            const enemyTypes = pokemonData ? pokemonData.types : [];
+            currentEnemyTypes = enemyTypes; // 保存到變數，供收服時使用
 
             if (isBossRound) {
                 enemyMaxHp = Math.floor(Math.random() * 3) + 8; enemyCurrentHp = enemyMaxHp;
@@ -329,6 +403,7 @@ export default function useGameEngine() {
             if(window.updateGameContext) {
                 window.updateGameContext.setEnemyName(displayName);
                 window.updateGameContext.setEnemyImgUrl(currentEnemyImgUrl);
+                window.updateGameContext.setEnemyTypes(enemyTypes); // ★ 新增：更新屬性
             }
 
             updateStats(); 
@@ -460,6 +535,7 @@ export default function useGameEngine() {
                             name: currentEnemyName,
                             level: 1,
                             word: currentEnemy.word,
+                            types: currentEnemyTypes, // ★ 新增：保存屬性資訊
                             caughtDate: new Date().toISOString()
                         };
                         window.playerData.pokemonBag.push(newPokemon);

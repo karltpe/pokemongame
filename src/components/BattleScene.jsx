@@ -3,6 +3,50 @@ import React from 'react';
 import { useGame } from '../contexts/GameContext';
 import { useAuth } from '../contexts/AuthContext';
 
+// ★ 新增：屬性顏色映射
+const TYPE_COLORS = {
+  normal: '#A8A878',
+  fire: '#F08030',
+  water: '#6890F0',
+  electric: '#F8D030',
+  grass: '#78C850',
+  ice: '#98D8D8',
+  fighting: '#C03028',
+  poison: '#A040A0',
+  ground: '#E0C068',
+  flying: '#A890F0',
+  psychic: '#F85888',
+  bug: '#A8B820',
+  rock: '#B8A038',
+  ghost: '#705898',
+  dragon: '#7038F8',
+  dark: '#705848',
+  steel: '#B8B8D0',
+  fairy: '#EE99AC',
+};
+
+// ★ 新增：屬性中文名稱映射
+const TYPE_NAMES = {
+  normal: '一般',
+  fire: '火',
+  water: '水',
+  electric: '電',
+  grass: '草',
+  ice: '冰',
+  fighting: '格鬥',
+  poison: '毒',
+  ground: '地面',
+  flying: '飛行',
+  psychic: '超能力',
+  bug: '蟲',
+  rock: '岩石',
+  ghost: '幽靈',
+  dragon: '龍',
+  dark: '惡',
+  steel: '鋼',
+  fairy: '妖精',
+};
+
 export default function BattleScene() {
   const {
     playerHp,
@@ -13,6 +57,7 @@ export default function BattleScene() {
     enemyMaxHp,
     enemyName,
     enemyImgUrl,
+    enemyTypes,
     isBossRound,
   } = useGame();
   const { playerData } = useAuth();
@@ -57,6 +102,27 @@ export default function BattleScene() {
             {enemyCurrentHp}/{enemyMaxHp}
           </span>
         </div>
+        {/* ★ 新增：屬性標籤 */}
+        {enemyTypes && enemyTypes.length > 0 && (
+          <div style={{ display: 'flex', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
+            {enemyTypes.map((type, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.7em',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: TYPE_COLORS[type] || '#999',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
+                }}
+              >
+                {TYPE_NAMES[type] || type}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="hp-bar-bg">
           <div
             className={`hp-bar-fill ${isBossRound ? 'hp-purple' : 'hp-red'}`}
@@ -72,6 +138,14 @@ export default function BattleScene() {
           style={{
             backgroundImage: enemyImgUrl ? `url('${enemyImgUrl}')` : 'none',
             filter: enemyCurrentHp <= 0 ? 'brightness(0) opacity(0.5)' : 'none',
+            // ★ 新增：根據主要屬性顯示邊框顏色
+            border: enemyTypes && enemyTypes.length > 0 
+              ? `3px solid ${TYPE_COLORS[enemyTypes[0]] || '#999'}` 
+              : '3px solid #333',
+            borderRadius: '10px',
+            boxShadow: enemyTypes && enemyTypes.length > 0
+              ? `0 0 10px ${TYPE_COLORS[enemyTypes[0]] || '#999'}40`
+              : 'none',
           }}
         />
       </div>

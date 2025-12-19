@@ -16,6 +16,7 @@ export function GameProvider({ children }) {
   const [enemyMaxHp, setEnemyMaxHp] = useState(1);
   const [enemyName, setEnemyName] = useState('野生怪獸');
   const [enemyImgUrl, setEnemyImgUrl] = useState('');
+  const [enemyTypes, setEnemyTypes] = useState([]); // ★ 新增：敵人屬性
   const [isBossRound, setIsBossRound] = useState(false);
   
   // UI 狀態
@@ -116,6 +117,7 @@ export function GameProvider({ children }) {
       setEnemyMaxHp,
       setEnemyName,
       setEnemyImgUrl,
+      setEnemyTypes,
       setIsBossRound,
       setMessage,
       setMessageColor,
@@ -145,6 +147,7 @@ export function GameProvider({ children }) {
       enemyMaxHp,
       enemyName,
       enemyImgUrl,
+      enemyTypes,
       isBossRound,
     });
     
@@ -162,6 +165,7 @@ export function GameProvider({ children }) {
     setEnemyMaxHp,
     setEnemyName,
     setEnemyImgUrl,
+    setEnemyTypes,
     setIsBossRound,
     setMessage,
     setMessageColor,
@@ -187,6 +191,7 @@ export function GameProvider({ children }) {
     enemyMaxHp,
     enemyName,
     enemyImgUrl,
+    enemyTypes,
     isBossRound,
   ]);
 
@@ -242,10 +247,11 @@ export function GameProvider({ children }) {
     playerExp,
     enemyCurrentHp,
     enemyMaxHp,
-    enemyName,
-    enemyImgUrl,
-    isBossRound,
-    message,
+      enemyName,
+      enemyImgUrl,
+      enemyTypes,
+      isBossRound,
+      message,
     messageColor,
     isShopOpen,
     
@@ -274,6 +280,7 @@ export function GameProvider({ children }) {
     setEnemyMaxHp,
     setEnemyName,
     setEnemyImgUrl,
+    setEnemyTypes,
     setIsBossRound,
     setMessage,
     setMessageColor,
